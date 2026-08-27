@@ -138,8 +138,16 @@ body {
   padding-bottom: 12px;
 }
 .tab-bar {
-  display: flex; gap: 0; margin: 0 24px; border-bottom: 1px solid var(--border);
+  display: flex; gap: 0; margin: 0 24px; border-bottom: 1px solid var(--border); align-items: stretch;
 }
+.nav-back {
+  display: none; align-items: center; justify-content: center; width: 32px;
+  background: none; border: none; cursor: pointer; color: var(--gray-mid);
+  padding: 0; margin-right: 4px; border-bottom: 3px solid transparent; flex-shrink: 0;
+}
+.nav-back:hover { color: var(--navy); }
+.nav-back.visible { display: flex; }
+.nav-back svg { width: 16px; height: 16px; }
 .tab-btn {
   padding: 12px 24px; font-size: 13px; font-weight: 700; letter-spacing: 0.04em;
   text-transform: uppercase; color: var(--gray-mid); background: none; border: none;
@@ -285,6 +293,8 @@ body {
 .host-row-name { color: var(--body-text); min-width: 0; }
 .host-row-name.done { text-decoration: line-through; opacity: 0.5; }
 .host-row-ip { color: var(--gray-mid); font-size: 11px; font-variant-numeric: tabular-nums; }
+.host-row-link { cursor: pointer; border-radius: 3px; padding: 1px 3px; margin: -1px -3px; }
+.host-row-link:hover { background: var(--gold); color: #fff; }
 .detail-label { font-weight: 700; color: var(--navy); text-transform: uppercase;
   letter-spacing: 0.04em; font-size: 10px; margin-top: 8px; }
 .detail-label:first-child { margin-top: 0; }
@@ -305,9 +315,10 @@ body {
 }
 .machine-task:last-child { border-bottom: none; }
 .machine-task:hover { background: var(--expand-bg); }
-.mt-name { font-size: 12px; color: var(--body-text); min-width: 0;
+.mt-name { font-size: 12px; color: var(--body-text); min-width: 0; cursor: pointer;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .mt-name.done { text-decoration: line-through; opacity: 0.5; }
+.mt-name:hover { color: var(--gold); }
 .mt-detail { font-size: 10px; color: var(--gray-mid); margin-top: 1px;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
@@ -429,6 +440,7 @@ body {
   </div>
   <div class="sticky-nav">
     <div class="tab-bar">
+      <button class="nav-back" id="navBack" onclick="navGoBack()" aria-label="Go back" title="Go back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg></button>
       <button class="tab-btn active" data-view="issues" onclick="switchView('issues')">Issues</button>
       <button class="tab-btn" data-view="machines" onclick="switchView('machines')">Machines</button>
     </div>
@@ -1302,7 +1314,7 @@ function renderIssues() {
     const done = allTasks.filter(t => isChecked(t.id)).length;
     const grpId = 'ig-' + ws.replace(/\W+/g, '-');
 
-    html += '<div class="group" id="' + grpId + '">';
+    html += '<div class="group" id="' + grpId + '" data-ws="' + esc(ws) + '">';
     html += '<div class="group-header" tabindex="0" onclick="toggleGroup(\'' + grpId + '\')" onkeydown="if(event.key===\'Enter\')toggleGroup(\'' + grpId + '\')">';
     html += chevronSvg();
     html += '<span class="group-title">' + esc(ws) + '</span>';
@@ -1353,8 +1365,11 @@ function renderIssues() {
         html += '<div class="host-row">';
         html += '<input type="checkbox" ' + (isDone ? 'checked' : '') +
           ' onchange="toggleTask(\'' + t.id + '\',this.checked)" aria-label="' + esc(m ? m.ips.join(', ') : t.machine) + '">';
-        html += '<span class="host-row-name' + (isDone ? ' done' : '') + '">' + (hostName ? esc(hostName) : '') + '</span>';
-        html += '<span class="host-row-ip">' + esc(m ? m.ips.join(', ') : t.machine) + '</span>';
+        const mSlug = m ? m.slug : '';
+        const linkClick = mSlug ? ' onclick="navToMachine(\'' + esc(mSlug) + '\')"' : '';
+        const linkCls = mSlug ? ' host-row-link' : '';
+        html += '<span class="host-row-name' + (isDone ? ' done' : '') + linkCls + '"' + linkClick + '>' + (hostName ? esc(hostName) : '') + '</span>';
+        html += '<span class="host-row-ip' + linkCls + '"' + linkClick + '>' + esc(m ? m.ips.join(', ') : t.machine) + '</span>';
         html += '</div>';
       });
       html += '</div>';
@@ -1541,7 +1556,7 @@ function renderMachineBody(body, slug) {
       ' onchange="toggleTask(\'' + tid + '\',this.checked)" style="width:14px;height:14px;accent-color:var(--check-accent)"></div>';
     html += '<div class="sev-stripe ' + sevFromScore(iss.score) + '"></div>';
     html += '<div style="min-width:0">';
-    html += '<div class="mt-name' + (isDone ? ' done' : '') + '" data-tid="' + tid + '">' + esc(iss.name) + '</div>';
+    html += '<div class="mt-name' + (isDone ? ' done' : '') + '" data-tid="' + tid + '" onclick="navToIssue(\'' + esc(iss.slug) + '\')">' + esc(iss.name) + '</div>';
     if (task && task.detail) html += '<div class="mt-detail">' + esc(task.detail) + '</div>';
     html += '</div>';
     html += '<div class="issue-badges">';
@@ -1565,6 +1580,61 @@ function switchView(view) {
   activeView = view;
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.view === view));
   document.querySelectorAll('.view-panel').forEach(p => p.classList.toggle('active', p.id === view + 'View'));
+}
+
+const NAV_STACK = [];
+const NAV_MAX = 10;
+function navPush(view, scrollTarget) {
+  NAV_STACK.push({ view: activeView, scrollY: window.scrollY });
+  if (NAV_STACK.length > NAV_MAX) NAV_STACK.shift();
+  document.getElementById('navBack').classList.add('visible');
+}
+function navGoBack() {
+  if (!NAV_STACK.length) return;
+  const entry = NAV_STACK.pop();
+  switchView(entry.view);
+  requestAnimationFrame(() => window.scrollTo(0, entry.scrollY));
+  if (!NAV_STACK.length) document.getElementById('navBack').classList.remove('visible');
+}
+function navToMachine(slug) {
+  navPush();
+  switchView('machines');
+  refreshAll();
+  requestAnimationFrame(() => {
+    const el = document.getElementById('msub-' + slug);
+    if (!el) return;
+    const grp = el.closest('.group');
+    if (grp && grp.classList.contains('collapsed')) {
+      grp.classList.remove('collapsed');
+    }
+    if (el.classList.contains('collapsed')) {
+      toggleMachineGroup('msub-' + slug, slug);
+    }
+    requestAnimationFrame(() => {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.style.outline = '2px solid var(--gold)';
+      setTimeout(() => { el.style.outline = ''; }, 1500);
+    });
+  });
+}
+function navToIssue(issueSlug) {
+  const iss = DATA.issues.find(i => i.slug === issueSlug);
+  if (!iss) return;
+  navPush();
+  openHostPanels.add(iss.pid);
+  switchView('issues');
+  refreshAll();
+  requestAnimationFrame(() => {
+    const card = document.querySelector('.issue-card[data-pid="' + iss.pid + '"]');
+    if (!card) return;
+    const grp = card.closest('.group');
+    if (grp && grp.classList.contains('collapsed')) grp.classList.remove('collapsed');
+    requestAnimationFrame(() => {
+      card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      card.style.outline = '2px solid var(--gold)';
+      setTimeout(() => { card.style.outline = ''; }, 1500);
+    });
+  });
 }
 
 function toggleUndoneFilter() {
