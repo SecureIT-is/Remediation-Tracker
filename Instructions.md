@@ -21,10 +21,11 @@ The template reads two top level variables from its `<script>` block:
 
 ### meta
 
-| Field       | Type   | Description |
-|-------------|--------|-------------|
-| `scan`      | string | Full scan name from Nessus, e.g. `"Client Q3 2026 Internal Authenticated Scan"` |
-| `scan_date` | string | Date the scan ran, `YYYY-MM-DD` |
+| Field              | Type   | Description |
+|--------------------|--------|-------------|
+| `scan`             | string | Full scan name from Nessus, e.g. `"Client Q3 2026 Internal Authenticated Scan"` |
+| `scan_date`        | string | Date the scan ran, `YYYY-MM-DD` |
+| `dataSchemaVersion`| number | Schema version of the DATA payload. Current version is `200`. The template validates this against its `COMPATIBLE_SCHEMA_VERSIONS` array on load and rejects incompatible data |
 
 Issue count, machine count, and task count are computed automatically from the `issues` and `machines` arrays at render time.
 
@@ -106,7 +107,7 @@ Each task has three possible states:
 | Done | Remediated | Strikethrough, dimmed | Counted as resolved |
 | False Positive | Finding does not apply to this host | Italic, dimmed, FP tag | Counted as resolved, annotated separately |
 
-Done and False Positive are mutually exclusive. Setting one clears the other. Both count toward progress (reducing remaining work), but FP counts are shown separately (e.g., "5 / 20 (3%) · 2 FP"). The "Remaining" filter excludes both done and FP tasks.
+Done and False Positive are mutually exclusive. Setting one clears the other. Both count toward progress (reducing remaining work), but FP counts are shown separately (e.g., "5 / 20 (3%) · 2 FP"). When Show Completed is off (default), resolved tasks are hidden from view.
 
 FP state is persisted in localStorage alongside done state and included in save/load JSON files as `fpTasks`.
 
@@ -122,6 +123,25 @@ The following fields are not extracted mechanically from the .nessus file and re
 - `klass` (on machines): Classification based on OS, hostname patterns, and network segment
 
 These are where the real value of the tracker lives. The Nessus `solution` field is kept in `nessus_solution` as a starting point, but the `remediation` field should contain environment specific guidance based on plugin output analysis and independent research.
+
+## Data Schema Versioning
+
+The DATA payload includes a `dataSchemaVersion` field in `meta`. The current schema version is `200`. The template declares a `COMPATIBLE_SCHEMA_VERSIONS` array listing all schema versions it can consume.
+
+On load, the template checks `meta.dataSchemaVersion` against `COMPATIBLE_SCHEMA_VERSIONS`. If the version is not in the array, the load is rejected with an error. If `dataSchemaVersion` is absent, the template assumes compatibility (for backward compatibility with older payloads).
+
+When generating DATA payloads, always set `meta.dataSchemaVersion` to the current version (`200`).
+
+## Migrating a Project File to a New Template
+
+When a project tracker (e.g., `Projects/UNAK/unak_q2_2026_remediation.html`) needs to be upgraded to a newer template version:
+
+1. Check the `dataSchemaVersion` in the project file's `INITIAL_DATA.meta.dataSchemaVersion`.
+2. Check the new template's `COMPATIBLE_SCHEMA_VERSIONS` array.
+3. If the project's `dataSchemaVersion` is in the template's compatible list, the migration is a direct transfer: copy the entire `INITIAL_DATA` JSON block from the project file and paste it into the new template, replacing the template's example data. No data transformation needed.
+4. If the version is not compatible, a data migration is required. Consult the changelog for what changed between schema versions.
+
+The `checked`, `fpTasks`, and `remNotes` state is stored in localStorage and save/load JSON files, not in the HTML. After transferring the DATA payload to a new template, users can load their existing JSON save file to restore progress.
 
 ## Output Location
 

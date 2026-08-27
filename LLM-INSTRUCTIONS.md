@@ -271,7 +271,8 @@ task_count = sum(len(iss["tasks"]) for iss in issues)
 DATA = {
     "meta": {
         "scan": "Client Name QN YYYY Scan Type",  # <-- fill in
-        "scan_date": "YYYY-MM-DD"                  # <-- fill in
+        "scan_date": "YYYY-MM-DD",                 # <-- fill in
+        "dataSchemaVersion": 200                    # must match COMPATIBLE_SCHEMA_VERSIONS in template
     },
     "issues": issues,
     "machines": machines
@@ -409,6 +410,19 @@ with open(output_file, "w") as f:
 
 print(f"Written to {output_file}")
 ```
+
+## Migrating a Project File to a New Template
+
+When upgrading an existing project tracker to a newer template version:
+
+1. Open the project file and read `INITIAL_DATA.meta.dataSchemaVersion`.
+2. Open the new template and read its `COMPATIBLE_SCHEMA_VERSIONS` array (declared near the top of the `<script>` block).
+3. If the project's `dataSchemaVersion` is in the template's compatible list: copy the entire `INITIAL_DATA` JSON from the project file into the new template, replacing the example data. Done. No transformation needed.
+4. If not compatible: a data migration is required between schema versions.
+
+The `dataSchemaVersion` field is the single source of truth for whether a DATA payload is compatible with a template version. Always check it before attempting a transfer.
+
+User progress (`checked`, `fpTasks`, `remNotes`) lives in localStorage and JSON save files, not in the HTML. After transferring the DATA payload, the user loads their existing save file to restore progress.
 
 ## Quick Reference: Full Workflow
 

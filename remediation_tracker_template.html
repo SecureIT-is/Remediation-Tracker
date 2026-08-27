@@ -541,7 +541,8 @@ body {
         <button class="theme-pill active" data-theme-val="system" onclick="setTheme('system')">System</button>
       </div>
     </div>
-    <div style="text-align:center;padding:12px 0 0;font-size:10px;color:var(--gray-mid);letter-spacing:0.03em">Remediation Tracker v<span id="versionLabel">0.9</span></div>
+    <div style="text-align:center;padding:12px 0 0;font-size:10px;color:var(--gray-mid);letter-spacing:0.03em">Remediation Tracker v<span id="versionLabel">0.91</span></div>
+    <div style="text-align:center;padding:4px 0 0;font-size:10px;color:var(--gray-mid);letter-spacing:0.03em">Compatible Data Schemas: <span id="schemaLabel"></span></div>
     <div class="modal-actions" style="margin-top:16px">
       <button class="modal-btn modal-btn-primary" onclick="closeSettingsModal()">Done</button>
     </div>
@@ -549,7 +550,9 @@ body {
 </div>
 
 <script>
-const TRACKER_VERSION = '0.9';
+const TRACKER_VERSION = '0.91';
+const COMPATIBLE_SCHEMA_VERSIONS = [200];
+const DATA_SCHEMA_VERSION = 200;
 
 /* ======================================================================
    DATA PAYLOAD — Replace the JSON below with your Remediation Tracker data.
@@ -560,7 +563,8 @@ const TRACKER_VERSION = '0.9';
 const INITIAL_DATA = {
   "meta": {
     "scan": "Example Corp Q3 2026 Internal Scan",
-    "scan_date": "2026-09-15"
+    "scan_date": "2026-09-15",
+    "dataSchemaVersion": 200
   },
   "issues": [
     {
@@ -1063,10 +1067,13 @@ function sanitizeData(raw) {
   if (!raw.meta || typeof raw.meta !== 'object') throw new Error('Missing or invalid meta');
   if (!Array.isArray(raw.issues)) throw new Error('Missing or invalid issues array');
   if (!Array.isArray(raw.machines)) throw new Error('Missing or invalid machines array');
+  var dsv = raw.meta.dataSchemaVersion;
+  if (dsv != null && COMPATIBLE_SCHEMA_VERSIONS.indexOf(dsv) === -1) throw new Error('Incompatible data schema version ' + dsv + '. Compatible versions: ' + COMPATIBLE_SCHEMA_VERSIONS.join(', '));
 
   const meta = {
     scan: sanitizeString(raw.meta.scan),
-    scan_date: sanitizeString(raw.meta.scan_date)
+    scan_date: sanitizeString(raw.meta.scan_date),
+    dataSchemaVersion: typeof raw.meta.dataSchemaVersion === 'number' ? raw.meta.dataSchemaVersion : DATA_SCHEMA_VERSION
   };
 
   const issues = raw.issues.map((iss, idx) => {
@@ -1984,7 +1991,10 @@ if (session) {
 function toggleSettingsModal() {
   var m = document.getElementById('settingsModal');
   m.classList.toggle('hidden');
-  if (!m.classList.contains('hidden')) syncThemePills();
+  if (!m.classList.contains('hidden')) {
+    syncThemePills();
+    document.getElementById('schemaLabel').textContent = COMPATIBLE_SCHEMA_VERSIONS.join(', ');
+  }
 }
 function closeSettingsModal() {
   document.getElementById('settingsModal').classList.add('hidden');
