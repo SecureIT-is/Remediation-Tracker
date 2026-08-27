@@ -126,6 +126,9 @@ body {
 }
 .header-meta span::before { content: ''; display: inline-block; width: 6px; height: 6px;
   background: var(--gold); margin-right: 6px; vertical-align: middle; }
+.header-meta span.eff-low::before { background: var(--sev-low); }
+.header-meta span.eff-med::before { background: var(--sev-med); }
+.header-meta span.eff-high::before { background: var(--sev-high); }
 
 .progress-wrap { margin-top: 10px; display: flex; align-items: center; gap: 12px; }
 .progress-bar { flex: 1; height: 6px; background: var(--progress-track); border-radius: 3px; overflow: hidden; }
@@ -149,6 +152,13 @@ body {
 .nav-back:hover { color: var(--navy); }
 .nav-back.visible { visibility: visible; }
 .nav-back svg { width: 16px; height: 16px; }
+.undo-btn {
+  display: flex; align-items: center; justify-content: center; width: 28px;
+  background: none; border: none; cursor: pointer; color: var(--gray-mid);
+  padding: 0; border-bottom: 3px solid transparent; flex-shrink: 0;
+}
+.undo-btn:hover:not(.disabled) { color: var(--navy); }
+.undo-btn.disabled { opacity: 0.3; cursor: default; pointer-events: none; }
 .tab-btn {
   padding: 12px 24px; font-size: 13px; font-weight: 700; letter-spacing: 0.04em;
   text-transform: uppercase; color: var(--gray-mid); background: none; border: none;
@@ -158,6 +168,14 @@ body {
 .tab-btn:hover { color: var(--navy); }
 .tab-btn.active { color: var(--navy); border-bottom-color: var(--gold); }
 .tab-btn:focus-visible { outline: 2px solid var(--gold); outline-offset: -2px; }
+.toggle-completed {
+  margin-left: auto; padding: 6px 12px; font-size: 11px; font-weight: 600;
+  color: var(--gray-mid); background: none; border: 1px solid var(--border);
+  border-radius: 3px; cursor: pointer; align-self: center; white-space: nowrap;
+  letter-spacing: 0.02em;
+}
+.toggle-completed:hover { border-color: var(--navy); color: var(--navy); }
+.toggle-completed.active { background: var(--navy); color: #fff; border-color: var(--navy); }
 
 .search-bar {
   margin: 12px 24px 0; display: flex; gap: 8px; align-items: center;
@@ -169,14 +187,6 @@ body {
 }
 .search-input::placeholder { color: var(--gray-mid); }
 .search-input:focus { outline: none; border-color: var(--gold); box-shadow: 0 0 0 2px rgba(213,167,84,0.2); }
-.filter-btn {
-  padding: 6px 12px; font-size: 12px; font-weight: 700; font-family: inherit;
-  background: var(--surface-alt); color: var(--gray-mid); border: 1px solid var(--border);
-  border-radius: 4px; cursor: pointer; white-space: nowrap;
-}
-.filter-btn.active { background: var(--navy); color: #fff; border-color: var(--navy); }
-.filter-btn:hover:not(.active) { border-color: var(--gold); color: var(--navy); }
-.filter-btn:focus-visible { outline: 2px solid var(--gold); outline-offset: 1px; }
 
 .content { padding: 16px 24px 80px; }
 .view-panel { display: none; }
@@ -470,12 +480,14 @@ body {
   <div class="sticky-nav">
     <div class="tab-bar">
       <button class="nav-back" id="navBack" onclick="navGoBack()" aria-label="Go back" title="Go back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg></button>
+      <button class="undo-btn disabled" id="undoBtn" onclick="performUndo()" aria-label="Undo" title="Undo"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M3 13a9 9 0 0 1 15.36-6.36L21 9"/></svg></button>
+      <button class="undo-btn disabled" id="redoBtn" onclick="performRedo()" aria-label="Redo" title="Redo"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 7v6h-6"/><path d="M21 13a9 9 0 0 0-15.36-6.36L3 9"/></svg></button>
       <button class="tab-btn active" data-view="issues" onclick="switchView('issues')">Issues</button>
       <button class="tab-btn" data-view="machines" onclick="switchView('machines')">Machines</button>
+      <button class="toggle-completed" id="toggleCompleted" onclick="toggleShowCompleted()">Show Completed</button>
     </div>
     <div class="search-bar">
       <input class="search-input" id="searchInput" type="text" placeholder="Filter by name, IP, CVE, plugin ID...">
-      <button class="filter-btn" id="filterUndone" onclick="toggleUndoneFilter()">Remaining</button>
     </div>
   </div>
 </div>
@@ -1029,9 +1041,13 @@ let checked = {};
 let fpTasks = {};
 let remNotes = {};
 let activeView = 'issues';
+let showCompleted = false;
 let searchTerm = '';
-let filterUndone = false;
 let saveDirty = false;
+let undoStack = [];
+let redoStack = [];
+const UNDO_MAX = 50;
+let _skipRecord = false;
 let pendingLoadData = null;
 const openDetails = new Set();
 const openHostPanels = new Set();
@@ -1160,11 +1176,76 @@ function setFP(id, val) {
   saveState();
 }
 function toggleFP(tid) {
-  setFP(tid, !isFP(tid));
+  var wasFP = isFP(tid);
+  var wasChecked = isChecked(tid);
+  setFP(tid, !wasFP);
+  var ch = [{ tid: tid, field: 'fp', prev: wasFP, next: !wasFP }];
+  if (wasChecked && !wasFP) ch.push({ tid: tid, field: 'checked', prev: true, next: false });
+  recordAction({ type: 'fp', changes: ch });
   refreshAll();
 }
 function saveNote(tid, val) {
   val = val.slice(0, 256);
+  if (val) remNotes[tid] = val; else delete remNotes[tid];
+  saveState();
+}
+
+function recordAction(action) {
+  if (_skipRecord) return;
+  undoStack.push(action);
+  if (undoStack.length > UNDO_MAX) undoStack.shift();
+  redoStack = [];
+  updateUndoButtons();
+}
+function applyChanges(changes, direction) {
+  _skipRecord = true;
+  changes.forEach(function(c) {
+    var val = direction === 'undo' ? c.prev : c.next;
+    if (c.field === 'checked') {
+      if (val) { checked[c.tid] = 1; delete fpTasks[c.tid]; } else { delete checked[c.tid]; }
+    } else if (c.field === 'fp') {
+      if (val) { fpTasks[c.tid] = 1; delete checked[c.tid]; } else { delete fpTasks[c.tid]; }
+    } else if (c.field === 'note') {
+      if (val) remNotes[c.tid] = val; else delete remNotes[c.tid];
+    }
+  });
+  saveState();
+  _skipRecord = false;
+}
+function performUndo() {
+  if (!undoStack.length) return;
+  var action = undoStack.pop();
+  applyChanges(action.changes, 'undo');
+  redoStack.push(action);
+  updateUndoButtons();
+  refreshAll();
+}
+function performRedo() {
+  if (!redoStack.length) return;
+  var action = redoStack.pop();
+  applyChanges(action.changes, 'redo');
+  undoStack.push(action);
+  updateUndoButtons();
+  refreshAll();
+}
+function updateUndoButtons() {
+  var u = document.getElementById('undoBtn');
+  var r = document.getElementById('redoBtn');
+  if (u) u.classList.toggle('disabled', !undoStack.length);
+  if (r) r.classList.toggle('disabled', !redoStack.length);
+}
+function snapshotTask(tid) {
+  return { checked: !!checked[tid], fp: !!fpTasks[tid], note: remNotes[tid] || '' };
+}
+var _noteFocusVal = {};
+function noteOnFocus(tid, val) { _noteFocusVal[tid] = val || ''; }
+function noteOnBlur(tid, val) {
+  val = (val || '').slice(0, 256);
+  var prev = _noteFocusVal[tid] || '';
+  delete _noteFocusVal[tid];
+  if (val !== prev) {
+    recordAction({ type: 'note', changes: [{ tid: tid, field: 'note', prev: prev, next: val }] });
+  }
   if (val) remNotes[tid] = val; else delete remNotes[tid];
   saveState();
 }
@@ -1445,11 +1526,12 @@ function renderIssues() {
         const hostName = m && m.name ? m.name : '';
         const isDone = isChecked(t.id);
         const taskFP = isFP(t.id);
+        if (!showCompleted && (isDone || taskFP)) return;
         html += '<div class="host-row">';
         html += '<input type="checkbox" ' + (isDone ? 'checked' : '') +
           ' onchange="toggleTask(\'' + t.id + '\',this.checked)" aria-label="' + esc(m ? m.ips.join(', ') : t.machine) + '">';
         const mSlug = m ? m.slug : '';
-        const linkClick = mSlug ? ' onclick="navToMachine(\'' + esc(mSlug) + '\')"' : '';
+        const linkClick = mSlug ? ' onclick="navToMachine(\'' + esc(mSlug) + '\',\'' + esc(iss.slug) + '\')"' : '';
         const linkCls = mSlug ? ' host-row-link' : '';
         const nameCls = isDone ? ' done' : (taskFP ? ' fp' : '');
         html += '<span class="host-row-name' + nameCls + linkCls + '"' + linkClick + '>' + (hostName ? esc(hostName) : '') + (taskFP ? '<span class="fp-tag">FP</span>' : '') + '</span>';
@@ -1459,7 +1541,7 @@ function renderIssues() {
         if (t.detail) {
           html += '<div class="host-row-output">' + esc(t.detail) + '</div>';
         }
-        html += '<textarea class="rem-notes" maxlength="256" rows="2" placeholder="Remediation notes…" data-tid="' + t.id + '" oninput="saveNote(\'' + t.id + '\',this.value)" onblur="saveNote(\'' + t.id + '\',this.value)">' + esc(remNotes[t.id] || '') + '</textarea>';
+        html += '<textarea class="rem-notes" maxlength="256" rows="2" placeholder="Remediation notes…" data-tid="' + t.id + '" oninput="saveNote(\'' + t.id + '\',this.value)" onfocus="noteOnFocus(\'' + t.id + '\',this.value)" onblur="noteOnBlur(\'' + t.id + '\',this.value)">' + esc(remNotes[t.id] || '') + '</textarea>';
       });
       html += '</div>';
 
@@ -1551,8 +1633,7 @@ function renderMachines() {
 }
 
 function matchesSearch(iss, machine) {
-  if (!searchTerm && !filterUndone) return true;
-  if (filterUndone && iss.tasks.every(t => isResolved(t.id))) return false;
+  if (!showCompleted && iss.tasks.every(t => isResolved(t.id))) return false;
   if (!searchTerm) return true;
   const q = searchTerm.toLowerCase();
   if (iss.name.toLowerCase().includes(q)) return true;
@@ -1566,7 +1647,7 @@ function matchesSearch(iss, machine) {
   return false;
 }
 function matchesSearchMachine(m) {
-  if (filterUndone && m.tasks.every(t => isResolved(t))) return false;
+  if (!showCompleted && m.tasks.every(t => isResolved(t))) return false;
   if (!searchTerm) return true;
   const q = searchTerm.toLowerCase();
   if (m.ips.some(ip => ip.includes(q))) return true;
@@ -1582,39 +1663,66 @@ function matchesSearchMachine(m) {
 }
 
 function toggleTask(tid, val) {
+  var prev = !!checked[tid];
+  var prevFP = !!fpTasks[tid];
   setChecked(tid, val);
+  var ch = [{ tid: tid, field: 'checked', prev: prev, next: !!val }];
+  if (prevFP && val) ch.push({ tid: tid, field: 'fp', prev: true, next: false });
+  recordAction({ type: 'check', changes: ch });
   refreshAll();
 }
 function toggleIssue(pid, val) {
   const iss = DATA.issues.find(i => i.pid === pid);
   if (!iss) return;
-  iss.tasks.forEach(t => setChecked(t.id, val));
+  var ch = [];
+  iss.tasks.forEach(function(t) {
+    var prev = !!checked[t.id]; var prevFP = !!fpTasks[t.id];
+    setChecked(t.id, val);
+    ch.push({ tid: t.id, field: 'checked', prev: prev, next: !!val });
+    if (prevFP && val) ch.push({ tid: t.id, field: 'fp', prev: true, next: false });
+  });
+  recordAction({ type: 'group', changes: ch });
   refreshAll();
 }
 function checkGroup(grpId, val) {
   const issues = WORKSTREAM_MAP[grpId];
-  if (issues) issues.forEach(iss => iss.tasks.forEach(t => {
+  var ch = [];
+  if (issues) issues.forEach(function(iss) { iss.tasks.forEach(function(t) {
+    var prev = !!checked[t.id]; var prevFP = !!fpTasks[t.id];
     if (!val) { delete fpTasks[t.id]; }
     setChecked(t.id, val);
-  }));
+    ch.push({ tid: t.id, field: 'checked', prev: prev, next: !!val });
+    if (prevFP && !val) ch.push({ tid: t.id, field: 'fp', prev: true, next: false });
+  }); });
+  recordAction({ type: 'group', changes: ch });
   refreshAll();
 }
 function checkMachineGroup(grpId, val) {
   const klass = grpId.replace('mg-', '');
-  DATA.machines.forEach(m => {
-    if (m.klass === klass) m.tasks.forEach(t => {
+  var ch = [];
+  DATA.machines.forEach(function(m) {
+    if (m.klass === klass) m.tasks.forEach(function(t) {
+      var prev = !!checked[t]; var prevFP = !!fpTasks[t];
       if (!val) { delete fpTasks[t]; }
       setChecked(t, val);
+      ch.push({ tid: t, field: 'checked', prev: prev, next: !!val });
+      if (prevFP && !val) ch.push({ tid: t, field: 'fp', prev: true, next: false });
     });
   });
+  recordAction({ type: 'group', changes: ch });
   refreshAll();
 }
 function checkMachine(slug, val) {
   const m = DATA.machines.find(mm => mm.slug === slug);
-  if (m) m.tasks.forEach(t => {
+  var ch = [];
+  if (m) m.tasks.forEach(function(t) {
+    var prev = !!checked[t]; var prevFP = !!fpTasks[t];
     if (!val) { delete fpTasks[t]; }
     setChecked(t, val);
+    ch.push({ tid: t, field: 'checked', prev: prev, next: !!val });
+    if (prevFP && !val) ch.push({ tid: t, field: 'fp', prev: true, next: false });
   });
+  recordAction({ type: 'group', changes: ch });
   refreshAll();
 }
 
@@ -1645,12 +1753,13 @@ function renderMachineBody(body, slug) {
     const task = iss.tasks.find(t => t.id === tid);
     const isDone = isChecked(tid);
     const taskFP = isFP(tid);
+    if (!showCompleted && (isDone || taskFP)) return;
     html += '<div class="machine-task">';
     html += '<div class="issue-cb"><input type="checkbox" ' + (isDone ? 'checked' : '') +
       ' onchange="toggleTask(\'' + tid + '\',this.checked)" style="width:14px;height:14px;accent-color:var(--check-accent)"></div>';
     html += '<div class="sev-stripe ' + sevFromScore(iss.score) + '"></div>';
     html += '<div style="min-width:0">';
-    html += '<div class="mt-name' + (isDone ? ' done' : (taskFP ? ' fp' : '')) + '" data-tid="' + tid + '" onclick="navToIssue(\'' + esc(iss.slug) + '\')">' + esc(iss.name) + (taskFP ? '<span class="fp-tag">FP</span>' : '') + '</div>';
+    html += '<div class="mt-name' + (isDone ? ' done' : (taskFP ? ' fp' : '')) + '" data-tid="' + tid + '" onclick="navToIssue(\'' + esc(iss.slug) + '\',\'' + esc(slug) + '\')">' + esc(iss.name) + (taskFP ? '<span class="fp-tag">FP</span>' : '') + '</div>';
     if (task && task.detail) html += '<div class="mt-detail">' + esc(task.detail) + '</div>';
     html += '</div>';
     html += '<div class="issue-badges">';
@@ -1672,6 +1781,12 @@ function toggleHosts(pid) {
   refreshAll();
 }
 
+function toggleShowCompleted() {
+  showCompleted = !showCompleted;
+  document.getElementById('toggleCompleted').classList.toggle('active', showCompleted);
+  document.getElementById('toggleCompleted').textContent = showCompleted ? 'Show Completed' : 'Show Completed';
+  refreshAll();
+}
 function switchView(view) {
   activeView = view;
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.view === view));
@@ -1680,20 +1795,46 @@ function switchView(view) {
 
 const NAV_STACK = [];
 const NAV_MAX = 10;
-function navPush(view, scrollTarget) {
-  NAV_STACK.push({ view: activeView, scrollY: window.scrollY });
+function navPush(slug) {
+  NAV_STACK.push({ view: activeView, scrollY: window.scrollY, slug: slug || null });
   if (NAV_STACK.length > NAV_MAX) NAV_STACK.shift();
   document.getElementById('navBack').classList.add('visible');
+}
+function slugIsHidden(entry) {
+  if (!entry.slug) return false;
+  var iss = DATA.issues.find(function(i) { return i.slug === entry.slug; });
+  if (iss) return iss.tasks.every(function(t) { return isResolved(t.id); });
+  var m = DATA.machines.find(function(mm) { return mm.slug === entry.slug; });
+  if (m) return m.tasks.every(function(tid) { return isResolved(tid); });
+  return false;
+}
+function scrollToSlug(slug) {
+  if (!slug) return;
+  var iss = DATA.issues.find(function(i) { return i.slug === slug; });
+  if (iss) {
+    var card = document.querySelector('.issue-card[data-pid="' + iss.pid + '"]');
+    if (card) { requestAnimationFrame(function() { card.scrollIntoView({ behavior: 'smooth', block: 'start' }); }); return; }
+  }
+  var el = document.getElementById('msub-' + slug);
+  if (el) { requestAnimationFrame(function() { el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }); }
 }
 function navGoBack() {
   if (!NAV_STACK.length) return;
   const entry = NAV_STACK.pop();
+  if (!showCompleted && slugIsHidden(entry)) {
+    showCompleted = true;
+    document.getElementById('toggleCompleted').classList.add('active');
+  }
   switchView(entry.view);
-  requestAnimationFrame(() => window.scrollTo(0, entry.scrollY));
+  refreshAll();
+  requestAnimationFrame(function() {
+    if (entry.slug) scrollToSlug(entry.slug);
+    else window.scrollTo(0, entry.scrollY);
+  });
   if (!NAV_STACK.length) document.getElementById('navBack').classList.remove('visible');
 }
-function navToMachine(slug) {
-  navPush();
+function navToMachine(slug, originSlug) {
+  navPush(originSlug);
   switchView('machines');
   refreshAll();
   requestAnimationFrame(() => {
@@ -1712,10 +1853,10 @@ function navToMachine(slug) {
     });
   });
 }
-function navToIssue(issueSlug) {
+function navToIssue(issueSlug, originSlug) {
   const iss = DATA.issues.find(i => i.slug === issueSlug);
   if (!iss) return;
-  navPush();
+  navPush(originSlug);
   openHostPanels.add(iss.pid);
   switchView('issues');
   refreshAll();
@@ -1732,11 +1873,17 @@ function navToIssue(issueSlug) {
   });
 }
 
-function toggleUndoneFilter() {
-  filterUndone = !filterUndone;
-  document.getElementById('filterUndone').classList.toggle('active', filterUndone);
-  refreshAll();
-}
+window.addEventListener('beforeunload', function(e) {
+  if (saveDirty) { e.preventDefault(); e.returnValue = ''; }
+});
+document.addEventListener('keydown', function(e) {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+    if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') return;
+    e.preventDefault();
+    if (e.shiftKey) performRedo(); else performUndo();
+  }
+});
+
 
 function updateGlobalProgress() {
   const total = ALL_TASK_IDS.size;
@@ -1752,16 +1899,51 @@ function updateGlobalProgress() {
 
 function updateHeaderMeta() {
   const m = DATA.meta;
-  const issueCount = DATA.issues.length;
-  const machineCount = DATA.machines.length;
-  const taskCount = DATA.issues.reduce((sum, iss) => sum + iss.tasks.length, 0);
+  const totalIssues = DATA.issues.length;
+  const totalMachines = DATA.machines.length;
+  const totalTasks = DATA.issues.reduce((sum, iss) => sum + iss.tasks.length, 0);
   document.getElementById('headerTitle').textContent = SCAN_NAME + ' Remediation Tracker';
   document.title = SCAN_NAME + ' Remediation Tracker';
+  var resolved = 0;
+  ALL_TASK_IDS.forEach(function(id) { if (isResolved(id)) resolved++; });
+  var hasWork = resolved > 0;
+  var remIssues = 0, remMachines = 0, remTasks = 0;
+  var effortLow = 0, effortMed = 0, effortHigh = 0;
+  if (hasWork) {
+    DATA.issues.forEach(function(iss) {
+      var issRem = iss.tasks.filter(function(t) { return !isResolved(t.id); }).length;
+      if (issRem > 0) remIssues++;
+      remTasks += issRem;
+      var e = (iss.effort || 'Medium').toLowerCase();
+      if (e === 'low') effortLow += issRem;
+      else if (e === 'high') effortHigh += issRem;
+      else effortMed += issRem;
+    });
+    var machSeen = {};
+    DATA.issues.forEach(function(iss) {
+      iss.tasks.forEach(function(t) {
+        if (!isResolved(t.id) && !machSeen[t.machine]) { machSeen[t.machine] = 1; remMachines++; }
+      });
+    });
+  } else {
+    DATA.issues.forEach(function(iss) {
+      var e = (iss.effort || 'Medium').toLowerCase();
+      if (e === 'low') effortLow += iss.tasks.length;
+      else if (e === 'high') effortHigh += iss.tasks.length;
+      else effortMed += iss.tasks.length;
+    });
+  }
+  var issLabel = hasWork ? remIssues + ' / ' + totalIssues + ' issues' : totalIssues + ' issues';
+  var machLabel = hasWork ? remMachines + ' / ' + totalMachines + ' machines' : totalMachines + ' machines';
+  var taskLabel = hasWork ? remTasks + ' / ' + totalTasks + ' tasks' : totalTasks + ' tasks';
   document.getElementById('headerMeta').innerHTML =
     '<span>Scan: ' + esc(m.scan_date) + '</span>' +
-    '<span>' + issueCount + ' issues</span>' +
-    '<span>' + machineCount + ' machines</span>' +
-    '<span>' + taskCount + ' tasks</span>';
+    '<span>' + issLabel + '</span>' +
+    '<span>' + machLabel + '</span>' +
+    '<span>' + taskLabel + '</span>' +
+    '(Task Effort: <span class="eff-low">' + effortLow + ' Low</span>' +
+    '<span class="eff-med">' + effortMed + ' Medium</span>' +
+    '<span class="eff-high">' + effortHigh + ' High</span>)';
 }
 
 function refreshAll() {
@@ -1769,6 +1951,7 @@ function refreshAll() {
   renderIssues();
   renderMachines();
   updateGlobalProgress();
+  updateHeaderMeta();
 }
 
 // --- Startup ---
