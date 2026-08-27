@@ -296,6 +296,18 @@ body {
 .host-row-ip { color: var(--gray-mid); font-size: 11px; font-variant-numeric: tabular-nums; }
 .host-row-link { cursor: pointer; border-radius: 3px; padding: 1px 3px; margin: -1px -3px; }
 .host-row-link:hover { background: var(--gold); color: #fff; }
+.rem-notes {
+  display: block; width: calc(100% - 22px); margin: 2px 0 4px 22px; padding: 4px 6px;
+  font-size: 11px; font-family: inherit; color: var(--body-text); background: var(--surface-alt);
+  border: 1px solid var(--border); border-radius: 3px; resize: vertical; max-height: 80px;
+  line-height: 1.3;
+}
+.rem-notes:focus { border-color: var(--gold); outline: none; }
+.host-row-output {
+  font-size: 10px; font-family: monospace; color: var(--gray-mid);
+  padding: 2px 0 6px 22px; word-break: break-all; line-height: 1.4;
+  border-bottom: 1px solid var(--border-subtle);
+}
 .detail-label { font-weight: 700; color: var(--navy); text-transform: uppercase;
   letter-spacing: 0.04em; font-size: 10px; margin-top: 8px; }
 .detail-label:first-child { margin-top: 0; }
@@ -408,6 +420,22 @@ body {
 .theme-pill:focus-visible { outline: 2px solid var(--gold); outline-offset: -2px; }
 .ui-hidden { display: none !important; }
 
+.fp-btn {
+  font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 3px;
+  background: none; border: 1px solid var(--border); color: var(--gray-mid);
+  cursor: pointer; font-family: inherit; letter-spacing: 0.02em;
+  line-height: 1.2; flex-shrink: 0;
+}
+.fp-btn:hover { border-color: var(--sev-med); color: var(--sev-med); }
+.hosts-panel .fp-btn { margin-left: auto; }
+.fp-btn.active { background: var(--sev-med-bg); border-color: var(--sev-med); color: var(--sev-med); }
+.host-row-name.fp, .mt-name.fp, .issue-name.fp { opacity: 0.5; font-style: italic; }
+.fp-tag {
+  font-size: 8px; font-weight: 700; color: var(--sev-med);
+  background: var(--sev-med-bg); padding: 0 4px; border-radius: 2px;
+  margin-left: 4px; vertical-align: middle; display: inline-block;
+}
+
 @media (max-width: 640px) {
   .app-header { padding: 12px 16px 10px; }
   .header-meta { flex-wrap: wrap; gap: 8px; }
@@ -501,6 +529,7 @@ body {
         <button class="theme-pill active" data-theme-val="system" onclick="setTheme('system')">System</button>
       </div>
     </div>
+    <div style="text-align:center;padding:12px 0 0;font-size:10px;color:var(--gray-mid);letter-spacing:0.03em">Remediation Tracker v<span id="versionLabel">0.9</span></div>
     <div class="modal-actions" style="margin-top:16px">
       <button class="modal-btn modal-btn-primary" onclick="closeSettingsModal()">Done</button>
     </div>
@@ -508,6 +537,8 @@ body {
 </div>
 
 <script>
+const TRACKER_VERSION = '0.9';
+
 /* ======================================================================
    DATA PAYLOAD — Replace the JSON below with your Remediation Tracker data.
    See Instructions.md for the full schema and LLM-INSTRUCTIONS.md
@@ -995,6 +1026,8 @@ let WORKSTREAM_MAP = {};
 
 // --- State ---
 let checked = {};
+let fpTasks = {};
+let remNotes = {};
 let activeView = 'issues';
 let searchTerm = '';
 let filterUndone = false;
@@ -1087,14 +1120,18 @@ function saveSession() {
   try {
     localStorage.setItem(SESSION_KEY, JSON.stringify({
       type: 'secureit-remediation-tracker', version: 1,
-      scanName: SCAN_NAME, data: DATA, checked: checked
+      scanName: SCAN_NAME, data: DATA, checked: checked, fpTasks: fpTasks, remNotes: remNotes
     }));
   } catch(e) {}
 }
 function loadSession() {
   try {
     const raw = JSON.parse(localStorage.getItem(SESSION_KEY));
-    if (raw && raw.data && raw.type === 'secureit-remediation-tracker') return raw;
+    if (raw && raw.data && raw.type === 'secureit-remediation-tracker') {
+      if (!raw.fpTasks) raw.fpTasks = {};
+      if (!raw.remNotes) raw.remNotes = {};
+      return raw;
+    }
   } catch(e) {}
   return null;
 }
@@ -1112,8 +1149,23 @@ function getAllTaskIds() {
 }
 
 function isChecked(id) { return !!checked[id]; }
+function isFP(id) { return !!fpTasks[id]; }
+function isResolved(id) { return !!checked[id] || !!fpTasks[id]; }
 function setChecked(id, val) {
-  if (val) checked[id] = 1; else delete checked[id];
+  if (val) { checked[id] = 1; delete fpTasks[id]; } else { delete checked[id]; }
+  saveState();
+}
+function setFP(id, val) {
+  if (val) { fpTasks[id] = 1; delete checked[id]; } else { delete fpTasks[id]; }
+  saveState();
+}
+function toggleFP(tid) {
+  setFP(tid, !isFP(tid));
+  refreshAll();
+}
+function saveNote(tid, val) {
+  val = val.slice(0, 256);
+  if (val) remNotes[tid] = val; else delete remNotes[tid];
   saveState();
 }
 
@@ -1137,8 +1189,8 @@ function showStartupModal() {
   document.getElementById('startupModal').classList.remove('hidden');
 }
 
-function showConfirmModal(data, checkedState) {
-  pendingLoadData = { data: data, checked: checkedState };
+function showConfirmModal(data, checkedState, fpState, notesState) {
+  pendingLoadData = { data: data, checked: checkedState, fpTasks: fpState, remNotes: notesState };
   const issueCount = data.issues.length;
   const machineCount = data.machines.length;
   const taskCount = data.issues.reduce(function(s, i) { return s + i.tasks.length; }, 0);
@@ -1160,7 +1212,7 @@ function cancelLoad() {
 function confirmLoad() {
   if (!pendingLoadData) return;
   document.getElementById('confirmModal').classList.add('hidden');
-  initWithData(pendingLoadData.data, pendingLoadData.checked);
+  initWithData(pendingLoadData.data, pendingLoadData.checked, pendingLoadData.fpTasks, pendingLoadData.remNotes);
   pendingLoadData = null;
 }
 
@@ -1168,7 +1220,7 @@ function confirmLoad() {
 function saveToFile() {
   const payload = JSON.stringify({
     type: 'secureit-remediation-tracker', version: 1,
-    scanName: SCAN_NAME, data: DATA, checked: checked
+    scanName: SCAN_NAME, data: DATA, checked: checked, fpTasks: fpTasks, remNotes: remNotes
   }, null, 2);
   const blob = new Blob([payload], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
@@ -1196,16 +1248,19 @@ function handleFileLoad(event) {
       const raw = JSON.parse(e.target.result);
       var cleanData, cleanChecked = null;
 
+      var cleanFP = null;
       if (raw.type === 'secureit-remediation-tracker' && raw.data) {
         cleanData = sanitizeData(raw.data);
         if (raw.checked) cleanChecked = sanitizeChecked(raw.checked);
+        if (raw.fpTasks) cleanFP = sanitizeChecked(raw.fpTasks);
+        var cleanNotes = raw.remNotes && typeof raw.remNotes === 'object' ? raw.remNotes : null;
       } else if (raw.meta && raw.issues && raw.machines) {
         cleanData = sanitizeData(raw);
       } else {
         throw new Error('Unrecognized file format. Expected a remediation tracker export or raw data JSON.');
       }
 
-      showConfirmModal(cleanData, cleanChecked);
+      showConfirmModal(cleanData, cleanChecked, cleanFP, cleanNotes);
     } catch(err) {
       alert('Failed to load file: ' + err.message);
     }
@@ -1232,14 +1287,16 @@ function confirmClear() {
   document.getElementById('clearModal').classList.add('hidden');
   try { localStorage.removeItem(SESSION_KEY); } catch(e) {}
   DATA = null;
-  CHECKED = {};
+  checked = {};
+  fpTasks = {};
+  remNotes = {};
   document.getElementById('issuesView').innerHTML = '';
   document.getElementById('machinesView').innerHTML = '';
   showStartupModal();
 }
 
 // --- Initialize with data ---
-function initWithData(data, checkedState) {
+function initWithData(data, checkedState, fpState, notesState) {
   DATA = data;
   SCAN_NAME = DATA.meta.scan || 'Untitled';
   ALL_TASK_IDS = getAllTaskIds();
@@ -1258,6 +1315,24 @@ function initWithData(data, checkedState) {
     });
   } else {
     checked = {};
+  }
+
+  if (fpState && typeof fpState === 'object') {
+    fpTasks = {};
+    Object.keys(fpState).forEach(function(k) {
+      if (ALL_TASK_IDS.has(k) && !checked[k]) fpTasks[k] = 1;
+    });
+  } else {
+    fpTasks = {};
+  }
+
+  if (notesState && typeof notesState === 'object') {
+    remNotes = {};
+    Object.keys(notesState).forEach(function(k) {
+      if (ALL_TASK_IDS.has(k) && typeof notesState[k] === 'string') remNotes[k] = notesState[k].slice(0, 256);
+    });
+  } else {
+    remNotes = {};
   }
 
   saveDirty = false;
@@ -1313,14 +1388,16 @@ function renderIssues() {
 
     const total = allTasks.length;
     const done = allTasks.filter(t => isChecked(t.id)).length;
+    const fpCount = allTasks.filter(t => isFP(t.id)).length;
+    const resolved = done + fpCount;
     const grpId = 'ig-' + ws.replace(/\W+/g, '-');
 
     html += '<div class="group" id="' + grpId + '" data-ws="' + esc(ws) + '">';
     html += '<div class="group-header" tabindex="0" onclick="toggleGroup(\'' + grpId + '\')" onkeydown="if(event.key===\'Enter\')toggleGroup(\'' + grpId + '\')">';
     html += chevronSvg();
     html += '<span class="group-title">' + esc(ws) + '</span>';
-    html += '<span class="group-count" data-gcount="' + grpId + '">' + done + '/' + total + '</span>';
-    html += '<div class="group-progress"><div class="group-progress-fill" data-gfill="' + grpId + '" style="width:' + (total ? (done/total*100) : 0) + '%"></div></div>';
+    html += '<span class="group-count" data-gcount="' + grpId + '">' + resolved + '/' + total + (fpCount ? ' · ' + fpCount + ' FP' : '') + '</span>';
+    html += '<div class="group-progress"><div class="group-progress-fill" data-gfill="' + grpId + '" style="width:' + (total ? (resolved/total*100) : 0) + '%"></div></div>';
     html += '<div class="group-actions">';
     html += '<button class="group-action" onclick="event.stopPropagation();checkGroup(\'' + grpId + '\',true)">All</button>';
     html += '<button class="group-action" onclick="event.stopPropagation();checkGroup(\'' + grpId + '\',false)">None</button>';
@@ -1329,6 +1406,8 @@ function renderIssues() {
 
     matchedIssues.forEach(iss => {
       const issDone = iss.tasks.every(t => isChecked(t.id));
+      const issAllFP = !issDone && iss.tasks.every(t => isFP(t.id));
+      const issAllResolved = iss.tasks.every(t => isResolved(t.id));
       const detailId = 'det-' + iss.pid;
       html += '<div class="issue-card" data-pid="' + iss.pid + '" data-gid="' + grpId + '">';
       html += '<div class="issue-row">';
@@ -1336,7 +1415,7 @@ function renderIssues() {
         ' onchange="toggleIssue(\'' + iss.pid + '\',this.checked)" aria-label="Mark ' + esc(iss.name) + '"></div>';
       html += '<div class="sev-stripe ' + sevFromScore(iss.score) + '"></div>';
       html += '<div class="issue-info">';
-      html += '<div class="issue-name' + (issDone ? ' done' : '') + '" data-iname="' + iss.pid + '">' + esc(iss.name) + '</div>';
+      html += '<div class="issue-name' + (issDone ? ' done' : (issAllFP ? ' fp' : '')) + '" data-iname="' + iss.pid + '">' + esc(iss.name) + (issAllFP ? '<span class="fp-tag">FP</span>' : '') + '</div>';
       html += '<div class="issue-sub">';
       html += '<span>' + iss.tasks.length + ' host' + (iss.tasks.length !== 1 ? 's' : '') + '</span>';
       html += '<span>' + esc(iss.family) + '</span>';
@@ -1346,16 +1425,18 @@ function renderIssues() {
       html += '<span class="badge badge-score">' + iss.score.toFixed(1) + ' ' + iss.src + '</span>';
       if (iss.kev) html += '<span class="badge badge-kev">CISA KEV</span>';
       if (iss.exploit) html += '<span class="badge badge-exploit">Exploit</span>';
-      html += '<span class="badge badge-effort-' + sevClass(iss.effort) + '">' + iss.effort + '</span>';
-      html += '<button class="issue-expand-btn" onclick="toggleDetail(\'' + detailId + '\')" aria-label="Expand remediation details">' + expandSvg() + '</button>';
+      html += '<span class="badge badge-effort-' + sevClass(iss.effort) + '">Effort: ' + iss.effort + '</span>';
       html += '</div></div>';
 
       const hostsId = 'hosts-' + iss.pid;
       const doneTasks = iss.tasks.filter(t => isChecked(t.id)).length;
+      const fpHostCount = iss.tasks.filter(t => isFP(t.id)).length;
+      const resolvedTasks = doneTasks + fpHostCount;
       const isHostsOpen = openHostPanels.has(iss.pid);
       html += '<div class="hosts-toggle' + (isHostsOpen ? ' open' : '') + '" tabindex="0" onclick="toggleHosts(\'' + iss.pid + '\')" onkeydown="if(event.key===\'Enter\')toggleHosts(\'' + iss.pid + '\')">';
       html += '<span class="ht-chevron">&#9654;</span> ';
-      html += doneTasks + ' / ' + iss.tasks.length + ' host' + (iss.tasks.length !== 1 ? 's' : '') + ' resolved';
+      html += resolvedTasks + ' / ' + iss.tasks.length + ' host' + (iss.tasks.length !== 1 ? 's' : '') + ' resolved';
+      if (fpHostCount > 0) html += ' · ' + fpHostCount + ' FP';
       html += '</div>';
 
       html += '<div class="hosts-panel' + (isHostsOpen ? ' open' : '') + '" id="' + hostsId + '">';
@@ -1363,15 +1444,22 @@ function renderIssues() {
         const m = DATA.machines.find(mm => mm.slug === t.machine);
         const hostName = m && m.name ? m.name : '';
         const isDone = isChecked(t.id);
+        const taskFP = isFP(t.id);
         html += '<div class="host-row">';
         html += '<input type="checkbox" ' + (isDone ? 'checked' : '') +
           ' onchange="toggleTask(\'' + t.id + '\',this.checked)" aria-label="' + esc(m ? m.ips.join(', ') : t.machine) + '">';
         const mSlug = m ? m.slug : '';
         const linkClick = mSlug ? ' onclick="navToMachine(\'' + esc(mSlug) + '\')"' : '';
         const linkCls = mSlug ? ' host-row-link' : '';
-        html += '<span class="host-row-name' + (isDone ? ' done' : '') + linkCls + '"' + linkClick + '>' + (hostName ? esc(hostName) : '') + '</span>';
+        const nameCls = isDone ? ' done' : (taskFP ? ' fp' : '');
+        html += '<span class="host-row-name' + nameCls + linkCls + '"' + linkClick + '>' + (hostName ? esc(hostName) : '') + (taskFP ? '<span class="fp-tag">FP</span>' : '') + '</span>';
         html += '<span class="host-row-ip' + linkCls + '"' + linkClick + '>' + esc(m ? m.ips.join(', ') : t.machine) + '</span>';
+        html += '<button class="fp-btn' + (taskFP ? ' active' : '') + '" onclick="event.stopPropagation();toggleFP(\'' + t.id + '\')">False Positive</button>';
         html += '</div>';
+        if (t.detail) {
+          html += '<div class="host-row-output">' + esc(t.detail) + '</div>';
+        }
+        html += '<textarea class="rem-notes" maxlength="256" rows="2" placeholder="Remediation notes…" data-tid="' + t.id + '" oninput="saveNote(\'' + t.id + '\',this.value)" onblur="saveNote(\'' + t.id + '\',this.value)">' + esc(remNotes[t.id] || '') + '</textarea>';
       });
       html += '</div>';
 
@@ -1386,16 +1474,7 @@ function renderIssues() {
         html += '<div class="detail-text">' + iss.cves.slice(0, 12).map(c => esc(c)).join(', ') +
           (iss.cves.length > 12 ? ' + ' + (iss.cves.length - 12) + ' more' : '') + '</div>';
       }
-      if (iss.tasks.some(t => t.detail)) {
-        html += '<div class="detail-label">Plugin Output</div>';
-        const seen = new Set();
-        iss.tasks.forEach(t => {
-          if (t.detail && !seen.has(t.detail)) {
-            seen.add(t.detail);
-            html += '<div class="detail-text" style="font-size:11px;font-family:monospace;word-break:break-all">' + esc(t.detail) + '</div>';
-          }
-        });
-      }
+
       html += '</div>';
       html += '</div>';
     });
@@ -1423,14 +1502,16 @@ function renderMachines() {
     const allTasks = machines.flatMap(m => m.tasks);
     const total = allTasks.length;
     const done = allTasks.filter(t => isChecked(t)).length;
+    const fpCount = allTasks.filter(t => isFP(t)).length;
+    const resolved = done + fpCount;
     const grpId = 'mg-' + klass;
 
     html += '<div class="group" id="' + grpId + '">';
     html += '<div class="group-header" tabindex="0" onclick="toggleGroup(\'' + grpId + '\')" onkeydown="if(event.key===\'Enter\')toggleGroup(\'' + grpId + '\')">';
     html += chevronSvg();
     html += '<span class="group-title">' + esc(klass) + 's</span>';
-    html += '<span class="group-count" data-gcount="' + grpId + '">' + done + '/' + total + '</span>';
-    html += '<div class="group-progress"><div class="group-progress-fill" data-gfill="' + grpId + '" style="width:' + (total ? (done/total*100) : 0) + '%"></div></div>';
+    html += '<span class="group-count" data-gcount="' + grpId + '">' + resolved + '/' + total + (fpCount ? ' · ' + fpCount + ' FP' : '') + '</span>';
+    html += '<div class="group-progress"><div class="group-progress-fill" data-gfill="' + grpId + '" style="width:' + (total ? (resolved/total*100) : 0) + '%"></div></div>';
     html += '<div class="group-actions">';
     html += '<button class="group-action" onclick="event.stopPropagation();checkMachineGroup(\'' + grpId + '\',true)">All</button>';
     html += '<button class="group-action" onclick="event.stopPropagation();checkMachineGroup(\'' + grpId + '\',false)">None</button>';
@@ -1440,6 +1521,8 @@ function renderMachines() {
     machines.forEach(m => {
       const mTasks = m.tasks;
       const mDone = mTasks.filter(t => isChecked(t)).length;
+      const mFP = mTasks.filter(t => isFP(t)).length;
+      const mResolved = mDone + mFP;
       const mAll = mTasks.length;
       const mGrpId = 'msub-' + m.slug;
       const ipStr = m.ips.join(', ');
@@ -1449,8 +1532,8 @@ function renderMachines() {
       html += '<div class="group-header" tabindex="0" onclick="toggleMachineGroup(\'' + mGrpId + '\',\'' + esc(m.slug) + '\')" onkeydown="if(event.key===\'Enter\')toggleMachineGroup(\'' + mGrpId + '\',\'' + esc(m.slug) + '\')" style="padding:6px 10px">';
       html += chevronSvg();
       html += '<span class="group-title" style="font-size:12px">' + esc(label) + '</span>';
-      html += '<span class="group-count" data-gcount="' + mGrpId + '" style="font-size:10px">' + mDone + '/' + mAll + '</span>';
-      html += '<div class="group-progress" style="width:40px"><div class="group-progress-fill" data-gfill="' + mGrpId + '" style="width:' + (mAll ? (mDone/mAll*100) : 0) + '%"></div></div>';
+      html += '<span class="group-count" data-gcount="' + mGrpId + '" style="font-size:10px">' + mResolved + '/' + mAll + (mFP ? ' · ' + mFP + ' FP' : '') + '</span>';
+      html += '<div class="group-progress" style="width:40px"><div class="group-progress-fill" data-gfill="' + mGrpId + '" style="width:' + (mAll ? (mResolved/mAll*100) : 0) + '%"></div></div>';
       html += '<div class="group-actions">';
       html += '<button class="group-action" onclick="event.stopPropagation();checkMachine(\'' + esc(m.slug) + '\',true)">All</button>';
       html += '<button class="group-action" onclick="event.stopPropagation();checkMachine(\'' + esc(m.slug) + '\',false)">None</button>';
@@ -1469,7 +1552,7 @@ function renderMachines() {
 
 function matchesSearch(iss, machine) {
   if (!searchTerm && !filterUndone) return true;
-  if (filterUndone && iss.tasks.every(t => isChecked(t.id))) return false;
+  if (filterUndone && iss.tasks.every(t => isResolved(t.id))) return false;
   if (!searchTerm) return true;
   const q = searchTerm.toLowerCase();
   if (iss.name.toLowerCase().includes(q)) return true;
@@ -1483,7 +1566,7 @@ function matchesSearch(iss, machine) {
   return false;
 }
 function matchesSearchMachine(m) {
-  if (filterUndone && m.tasks.every(t => isChecked(t))) return false;
+  if (filterUndone && m.tasks.every(t => isResolved(t))) return false;
   if (!searchTerm) return true;
   const q = searchTerm.toLowerCase();
   if (m.ips.some(ip => ip.includes(q))) return true;
@@ -1510,19 +1593,28 @@ function toggleIssue(pid, val) {
 }
 function checkGroup(grpId, val) {
   const issues = WORKSTREAM_MAP[grpId];
-  if (issues) issues.forEach(iss => iss.tasks.forEach(t => setChecked(t.id, val)));
+  if (issues) issues.forEach(iss => iss.tasks.forEach(t => {
+    if (!val) { delete fpTasks[t.id]; }
+    setChecked(t.id, val);
+  }));
   refreshAll();
 }
 function checkMachineGroup(grpId, val) {
   const klass = grpId.replace('mg-', '');
   DATA.machines.forEach(m => {
-    if (m.klass === klass) m.tasks.forEach(t => setChecked(t, val));
+    if (m.klass === klass) m.tasks.forEach(t => {
+      if (!val) { delete fpTasks[t]; }
+      setChecked(t, val);
+    });
   });
   refreshAll();
 }
 function checkMachine(slug, val) {
   const m = DATA.machines.find(mm => mm.slug === slug);
-  if (m) m.tasks.forEach(t => setChecked(t, val));
+  if (m) m.tasks.forEach(t => {
+    if (!val) { delete fpTasks[t]; }
+    setChecked(t, val);
+  });
   refreshAll();
 }
 
@@ -1552,15 +1644,17 @@ function renderMachineBody(body, slug) {
     if (!iss) return;
     const task = iss.tasks.find(t => t.id === tid);
     const isDone = isChecked(tid);
+    const taskFP = isFP(tid);
     html += '<div class="machine-task">';
     html += '<div class="issue-cb"><input type="checkbox" ' + (isDone ? 'checked' : '') +
       ' onchange="toggleTask(\'' + tid + '\',this.checked)" style="width:14px;height:14px;accent-color:var(--check-accent)"></div>';
     html += '<div class="sev-stripe ' + sevFromScore(iss.score) + '"></div>';
     html += '<div style="min-width:0">';
-    html += '<div class="mt-name' + (isDone ? ' done' : '') + '" data-tid="' + tid + '" onclick="navToIssue(\'' + esc(iss.slug) + '\')">' + esc(iss.name) + '</div>';
+    html += '<div class="mt-name' + (isDone ? ' done' : (taskFP ? ' fp' : '')) + '" data-tid="' + tid + '" onclick="navToIssue(\'' + esc(iss.slug) + '\')">' + esc(iss.name) + (taskFP ? '<span class="fp-tag">FP</span>' : '') + '</div>';
     if (task && task.detail) html += '<div class="mt-detail">' + esc(task.detail) + '</div>';
     html += '</div>';
     html += '<div class="issue-badges">';
+    html += '<button class="fp-btn' + (taskFP ? ' active' : '') + '" onclick="event.stopPropagation();toggleFP(\'' + tid + '\')" style="margin-right:4px">FP</button>';
     html += '<span class="badge badge-score" style="font-size:9px">' + iss.score.toFixed(1) + '</span>';
     if (iss.kev) html += '<span class="badge badge-kev" style="font-size:9px">KEV</span>';
     html += '</div></div>';
@@ -1573,7 +1667,8 @@ function toggleDetail(detId) {
   document.getElementById(detId)?.classList.toggle('open');
 }
 function toggleHosts(pid) {
-  if (openHostPanels.has(pid)) openHostPanels.delete(pid); else openHostPanels.add(pid);
+  if (openHostPanels.has(pid)) { openHostPanels.delete(pid); openDetails.delete(pid); }
+  else { openHostPanels.add(pid); openDetails.add(pid); }
   refreshAll();
 }
 
@@ -1645,11 +1740,14 @@ function toggleUndoneFilter() {
 
 function updateGlobalProgress() {
   const total = ALL_TASK_IDS.size;
-  let done = 0;
-  ALL_TASK_IDS.forEach(id => { if (isChecked(id)) done++; });
-  const pct = total ? (done / total * 100) : 0;
+  let done = 0, fp = 0;
+  ALL_TASK_IDS.forEach(id => { if (isChecked(id)) done++; else if (isFP(id)) fp++; });
+  const resolved = done + fp;
+  const pct = total ? (resolved / total * 100) : 0;
   document.getElementById('globalFill').style.width = pct + '%';
-  document.getElementById('globalLabel').textContent = done + ' / ' + total + ' (' + Math.round(pct) + '%)';
+  let label = resolved + ' / ' + total + ' (' + Math.round(pct) + '%)';
+  if (fp > 0) label += ' · ' + fp + ' FP';
+  document.getElementById('globalLabel').textContent = label;
 }
 
 function updateHeaderMeta() {
@@ -1690,7 +1788,8 @@ if (session) {
   try {
     const clean = sanitizeData(session.data);
     const cleanChecked = session.checked ? sanitizeChecked(session.checked) : null;
-    initWithData(clean, cleanChecked);
+    const cleanFP = session.fpTasks ? sanitizeChecked(session.fpTasks) : null;
+    initWithData(clean, cleanChecked, cleanFP, sess.remNotes || null);
   } catch(e) {
     localStorage.removeItem(SESSION_KEY);
     showStartupModal();

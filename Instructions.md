@@ -96,6 +96,20 @@ Every task ID in `machines[].tasks` must exist in exactly one `issues[].tasks[].
 
 Every `tasks[].machine` value must match exactly one `machines[].slug`. A task referencing a nonexistent machine slug will fail to render host metadata.
 
+## Task States
+
+Each task has three possible states:
+
+| State | Meaning | Visual | Progress |
+|-------|---------|--------|----------|
+| Unchecked | Not yet addressed | Normal text | Not counted |
+| Done | Remediated | Strikethrough, dimmed | Counted as resolved |
+| False Positive | Finding does not apply to this host | Italic, dimmed, FP tag | Counted as resolved, annotated separately |
+
+Done and False Positive are mutually exclusive. Setting one clears the other. Both count toward progress (reducing remaining work), but FP counts are shown separately (e.g., "5 / 20 (3%) · 2 FP"). The "Remaining" filter excludes both done and FP tasks.
+
+FP state is persisted in localStorage alongside done state and included in save/load JSON files as `fpTasks`.
+
 ## Human Written Fields
 
 The following fields are not extracted mechanically from the .nessus file and require analyst judgment:
