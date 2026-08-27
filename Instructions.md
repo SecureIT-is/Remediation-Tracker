@@ -1,0 +1,95 @@
+# Remediation Tracker: Data Format and Sources
+
+This document explains the JSON data schema consumed by `remediation_tracker_template.html` and where each field comes from in a Nessus scan.
+
+## Overview
+
+The template reads two top level variables from its `<script>` block:
+
+- **`SCAN_NAME`** (string): Short label for the engagement, e.g. `"Acme Q3 2026"`. Used in the page title and as the localStorage key prefix so multiple scans do not overwrite each other.
+- **`DATA`** (object): The full scan payload. Structure below.
+
+## DATA Schema
+
+```json
+{
+  "meta": { ... },
+  "issues": [ ... ],
+  "machines": [ ... ]
+}
+```
+
+### meta
+
+| Field       | Type   | Description |
+|-------------|--------|-------------|
+| `scan`      | string | Full scan name from Nessus, e.g. `"Client Q3 2026 Internal Authenticated Scan"` |
+| `scan_date` | string | Date the scan ran, `YYYY-MM-DD` |
+
+Issue count, machine count, and task count are computed automatically from the `issues` and `machines` arrays at render time.
+
+### issues (array of objects)
+
+Each object is one Nessus plugin that met the threshold. Issues are displayed grouped by `workstream`.
+
+| Field             | Type     | Source | Description |
+|-------------------|----------|--------|-------------|
+| `pid`             | string   | `pluginID` attribute on `<ReportItem>` | Nessus plugin ID |
+| `name`            | string   | `pluginName` attribute on `<ReportItem>` | Plugin display name |
+| `family`          | string   | `pluginFamily` attribute on `<ReportItem>` | Nessus plugin family |
+| `score`           | number   | `<vpr_score>` child, fallback `<cvss3_base_score>` | Highest score used for filtering |
+| `src`             | string   | `"VPR"` or `"CVSSv3"` | Which scoring system `score` came from |
+| `sev`             | number   | `severity` attribute on `<ReportItem>` | Nessus severity (0-4) |
+| `kev`             | boolean  | Cross reference with CISA KEV catalog | Whether any CVE in this plugin is on the CISA Known Exploited Vulnerabilities list |
+| `kevdate`         | string   | CISA KEV catalog | Date added to KEV, `YYYY/MM/DD` or empty |
+| `exploit`         | boolean  | `<exploit_available>` child | Whether a public exploit exists |
+| `maturity`        | string   | `<exploit_code_maturity>` child | `"High"`, `"Functional"`, `"Proof-of-Concept"`, or empty |
+| `epss`            | number   | `<epss_score>` child or FIRST EPSS API | Exploit Prediction Scoring System score (0.0 to 1.0) |
+| `cves`            | string[] | `<cve>` children | List of CVE identifiers |
+| `ports`           | string[] | Aggregated from `port`/`protocol` attributes | Unique `"port/proto"` strings seen across all hosts |
+| `workstream`      | string   | Human assigned | Logical remediation group, e.g. `"OS patching"`, `"Certificate management"` |
+| `effort`          | string   | Human assigned | `"Low"`, `"Medium"`, or `"High"` |
+| `estimate`        | string   | Human assigned | Time estimate, e.g. `"2 to 4 hours"` |
+| `remediation`     | string   | Human written | Actionable remediation steps (not just the Nessus solution field) |
+| `caveat`          | string   | Human written | Warnings, dependencies, or risk factors. Empty if none |
+| `nessus_solution` | string   | `<solution>` child of `<ReportItem>` | Nessus's own solution text, kept as fallback reference |
+| `tasks`           | array    | Aggregated per host | One entry per affected host |
+
+#### tasks (within each issue)
+
+| Field    | Type   | Description |
+|----------|--------|-------------|
+| `id`     | string | Format: `pluginID::hostIP::subIndex`. This is the unique checkbox key shared between Issues and Machines views. subIndex is usually `0` unless the same plugin fires multiple times on one host |
+| `host`   | string | IP address from the `<ReportHost>` `name` attribute |
+| `detail` | string | Extracted from `<plugin_output>` child, pipe delimited if multi line. Gives host specific context like exact version numbers |
+
+### machines (array of objects)
+
+Each object is one host that appears in at least one issue's task list.
+
+| Field    | Type     | Source | Description |
+|----------|----------|--------|-------------|
+| `ip`     | string   | `name` attribute on `<ReportHost>` | IP address |
+| `name`   | string   | `host-fqdn` or `netbios-name` from `<HostProperties>` | Hostname if available |
+| `os`     | string   | `operating-system` tag from `<HostProperties>` | OS string |
+| `type`   | string   | Derived or `system-type` tag | General description |
+| `klass`  | string   | Derived from OS/type | `"Server"`, `"Workstation"`, `"Embedded"`, or `"Legacy"`. Controls the top level grouping in the Machines view |
+| `subnet` | string   | Derived from IP | CIDR notation, e.g. `"10.0.1.0/24"` |
+| `tasks`  | string[] | Collected from all issues | Array of task IDs (`pluginID::hostIP::subIndex`) for this machine. Must match exactly the `id` values in the issues array |
+
+## Critical Invariant
+
+Every task ID in `machines[].tasks` must exist in exactly one `issues[].tasks[].id`, and vice versa. The Issues view and Machines view share a single checkbox state keyed by these IDs. A mismatch means a checkbox in one view has no counterpart in the other.
+
+## Human Written Fields
+
+The following fields are not extracted mechanically from the .nessus file and require analyst judgment:
+
+- `workstream`: Logical grouping for related remediation work
+- `effort`: Realistic effort rating considering the specific environment
+- `estimate`: Time estimate for a solo operator
+- `remediation`: Detailed, actionable steps (not just "update the software")
+- `caveat`: Environment specific warnings
+- `klass` (on machines): Classification based on OS, hostname patterns, and network segment
+
+These are where the real value of the tracker lives. The Nessus `solution` field is kept in `nessus_solution` as a starting point, but the `remediation` field should contain environment specific guidance based on plugin output analysis and independent research.

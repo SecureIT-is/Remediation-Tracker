@@ -1,0 +1,1496 @@
+<title>Remediation Tracker</title>
+<style>
+:root {
+  --navy: #2D3E52;
+  --navy-deep: #243041;
+  --gold: #D5A754;
+  --gold-dark: #B8893C;
+  --body-text: #1A1A1A;
+  --gray-mid: #4A5568;
+  --gray-light: #D1D5DB;
+  --gray-bg: #F5F5F5;
+  --surface: #FFFFFF;
+  --surface-alt: #F5F5F5;
+  --surface-raised: #FFFFFF;
+  --border: #D1D5DB;
+  --border-subtle: #E8ECF0;
+  --sev-low: #2B6CB0;
+  --sev-med: #C05621;
+  --sev-high: #9B2C2C;
+  --sev-low-bg: #EBF4FF;
+  --sev-med-bg: #FFF5EB;
+  --sev-high-bg: #FFF5F5;
+  --progress-track: #E8ECF0;
+  --progress-fill: #D5A754;
+  --check-accent: #2D3E52;
+  --kev-bg: #FFF5F5;
+  --kev-border: #FC8181;
+  --kev-text: #9B2C2C;
+  --expand-bg: #F7FAFC;
+  --shadow: 0 1px 3px rgba(0,0,0,0.08);
+  --shadow-lg: 0 4px 12px rgba(0,0,0,0.1);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --navy: #8BA4C0;
+    --navy-deep: #0F1A26;
+    --gold: #D5A754;
+    --gold-dark: #E0BD78;
+    --body-text: #E2E8F0;
+    --gray-mid: #A0AEC0;
+    --gray-light: #4A5568;
+    --gray-bg: #1A2535;
+    --surface: #162030;
+    --surface-alt: #1E2D40;
+    --surface-raised: #243041;
+    --border: #3A4D63;
+    --border-subtle: #2D3E52;
+    --sev-low: #63B3ED;
+    --sev-med: #F6AD55;
+    --sev-high: #FC8181;
+    --sev-low-bg: #1A2E4A;
+    --sev-med-bg: #3D2B1A;
+    --sev-high-bg: #3D1A1A;
+    --progress-track: #2D3E52;
+    --progress-fill: #D5A754;
+    --check-accent: #D5A754;
+    --kev-bg: #3D1A1A;
+    --kev-border: #9B2C2C;
+    --kev-text: #FC8181;
+    --expand-bg: #1A2535;
+    --shadow: 0 1px 3px rgba(0,0,0,0.3);
+    --shadow-lg: 0 4px 12px rgba(0,0,0,0.4);
+  }
+}
+:root[data-theme="dark"] {
+  --navy: #8BA4C0;
+  --navy-deep: #0F1A26;
+  --gold: #D5A754;
+  --gold-dark: #E0BD78;
+  --body-text: #E2E8F0;
+  --gray-mid: #A0AEC0;
+  --gray-light: #4A5568;
+  --gray-bg: #1A2535;
+  --surface: #162030;
+  --surface-alt: #1E2D40;
+  --surface-raised: #243041;
+  --border: #3A4D63;
+  --border-subtle: #2D3E52;
+  --sev-low: #63B3ED;
+  --sev-med: #F6AD55;
+  --sev-high: #FC8181;
+  --sev-low-bg: #1A2E4A;
+  --sev-med-bg: #3D2B1A;
+  --sev-high-bg: #3D1A1A;
+  --progress-track: #2D3E52;
+  --progress-fill: #D5A754;
+  --check-accent: #D5A754;
+  --kev-bg: #3D1A1A;
+  --kev-border: #9B2C2C;
+  --kev-text: #FC8181;
+  --expand-bg: #1A2535;
+  --shadow: 0 1px 3px rgba(0,0,0,0.3);
+  --shadow-lg: 0 4px 12px rgba(0,0,0,0.4);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  color: var(--body-text);
+  background: var(--surface);
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+}
+
+.app-header {
+  background: var(--surface-raised);
+  border-bottom: 2px solid var(--gold);
+  padding: 16px 24px 12px;
+  position: sticky; top: 0; z-index: 100;
+  box-shadow: var(--shadow-lg);
+}
+.header-top { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.header-logo {
+  height: 28px; opacity: 0.9; display: flex; align-items: center;
+}
+.header-logo .logo-main { fill: #2D3E52; }
+.header-logo .logo-accent { fill: #D5A754; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .header-logo .logo-main { fill: #FFFFFF; }
+}
+:root[data-theme="dark"] .header-logo .logo-main { fill: #FFFFFF; }
+.header-title { font-size: 18px; font-weight: 700; color: var(--navy); letter-spacing: 0.02em; }
+.header-meta {
+  display: flex; gap: 20px; margin-top: 8px; font-size: 12px; color: var(--gray-mid);
+  font-variant-numeric: tabular-nums;
+}
+.header-meta span::before { content: ''; display: inline-block; width: 6px; height: 6px;
+  background: var(--gold); margin-right: 6px; vertical-align: middle; }
+
+.progress-wrap { margin-top: 10px; display: flex; align-items: center; gap: 12px; }
+.progress-bar { flex: 1; height: 6px; background: var(--progress-track); border-radius: 3px; overflow: hidden; }
+.progress-fill { height: 100%; background: var(--progress-fill); border-radius: 3px;
+  transition: width 0.3s ease; }
+.progress-label { font-size: 13px; font-weight: 700; color: var(--gold-dark);
+  font-variant-numeric: tabular-nums; min-width: 90px; text-align: right; }
+
+.sticky-nav {
+  padding-bottom: 12px;
+}
+.tab-bar {
+  display: flex; gap: 0; margin: 0 24px; border-bottom: 1px solid var(--border);
+}
+.tab-btn {
+  padding: 12px 24px; font-size: 13px; font-weight: 700; letter-spacing: 0.04em;
+  text-transform: uppercase; color: var(--gray-mid); background: none; border: none;
+  border-bottom: 3px solid transparent; cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+.tab-btn:hover { color: var(--navy); }
+.tab-btn.active { color: var(--navy); border-bottom-color: var(--gold); }
+.tab-btn:focus-visible { outline: 2px solid var(--gold); outline-offset: -2px; }
+
+.search-bar {
+  margin: 12px 24px 0; display: flex; gap: 8px; align-items: center;
+}
+.search-input {
+  flex: 1; padding: 8px 12px; font-size: 13px; font-family: inherit;
+  background: var(--surface-alt); color: var(--body-text);
+  border: 1px solid var(--border); border-radius: 4px;
+}
+.search-input::placeholder { color: var(--gray-mid); }
+.search-input:focus { outline: none; border-color: var(--gold); box-shadow: 0 0 0 2px rgba(213,167,84,0.2); }
+.filter-btn {
+  padding: 6px 12px; font-size: 12px; font-weight: 700; font-family: inherit;
+  background: var(--surface-alt); color: var(--gray-mid); border: 1px solid var(--border);
+  border-radius: 4px; cursor: pointer; white-space: nowrap;
+}
+.filter-btn.active { background: var(--navy); color: #fff; border-color: var(--navy); }
+.filter-btn:hover:not(.active) { border-color: var(--gold); color: var(--navy); }
+.filter-btn:focus-visible { outline: 2px solid var(--gold); outline-offset: 1px; }
+
+.content { padding: 16px 24px 80px; }
+.view-panel { display: none; }
+.view-panel.active { display: block; }
+
+.group { margin-bottom: 12px; border: 1px solid var(--border); border-radius: 6px;
+  overflow: hidden; background: var(--surface-raised); box-shadow: var(--shadow); }
+.group-header {
+  display: flex; align-items: center; gap: 10px; padding: 10px 14px;
+  background: var(--surface-alt); cursor: pointer; user-select: none;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.group-header:hover { background: var(--surface-raised); }
+.group-header:focus-visible { outline: 2px solid var(--gold); outline-offset: -2px; }
+.group-chevron {
+  width: 18px; height: 18px; color: var(--gray-mid); flex-shrink: 0;
+  transition: transform 0.2s;
+}
+.group.collapsed .group-chevron { transform: rotate(-90deg); }
+.group.collapsed .group-body { display: none; }
+.group-title { font-size: 13px; font-weight: 700; color: var(--navy); flex: 1; }
+.group-count {
+  font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 10px;
+  background: var(--navy); color: #fff; font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+.group-progress {
+  width: 60px; height: 4px; background: var(--progress-track); border-radius: 2px;
+  overflow: hidden; flex-shrink: 0;
+}
+.group-progress-fill { height: 100%; background: var(--progress-fill); border-radius: 2px;
+  transition: width 0.3s; }
+.group-actions { display: flex; gap: 4px; }
+.group-action {
+  font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 3px;
+  background: none; border: 1px solid var(--border); color: var(--gray-mid);
+  cursor: pointer; font-family: inherit; text-transform: uppercase; letter-spacing: 0.04em;
+}
+.group-action:hover { border-color: var(--gold); color: var(--gold-dark); }
+.group-action:focus-visible { outline: 2px solid var(--gold); outline-offset: 1px; }
+
+.issue-card { border-bottom: 1px solid var(--border-subtle); }
+.issue-card:last-child { border-bottom: none; }
+.issue-row {
+  display: grid;
+  grid-template-columns: 32px 4px 1fr auto;
+  align-items: start; gap: 0 10px; padding: 8px 14px; min-height: 42px;
+}
+.issue-row:hover { background: var(--expand-bg); }
+.issue-cb { margin-top: 2px; }
+.issue-cb input[type="checkbox"] {
+  width: 16px; height: 16px; accent-color: var(--check-accent); cursor: pointer;
+}
+.sev-stripe { width: 4px; border-radius: 2px; align-self: stretch; }
+.sev-stripe.low { background: var(--sev-low); }
+.sev-stripe.med { background: var(--sev-med); }
+.sev-stripe.high { background: var(--sev-high); }
+.issue-info { min-width: 0; }
+.issue-name {
+  font-size: 13px; font-weight: 600; color: var(--body-text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.issue-name.done { text-decoration: line-through; opacity: 0.5; }
+.issue-sub { font-size: 11px; color: var(--gray-mid); margin-top: 2px;
+  display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.issue-badges { display: flex; gap: 6px; align-items: center; flex-shrink: 0; margin-left: 8px; }
+.badge {
+  font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 3px;
+  font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.badge-score { background: var(--surface-alt); color: var(--navy); border: 1px solid var(--border); }
+.badge-kev { background: var(--kev-bg); color: var(--kev-text); border: 1px solid var(--kev-border); }
+.badge-exploit { background: var(--sev-med-bg); color: var(--sev-med); border: 1px solid var(--sev-med); }
+.badge-effort-low { background: var(--sev-low-bg); color: var(--sev-low); }
+.badge-effort-med { background: var(--sev-med-bg); color: var(--sev-med); }
+.badge-effort-high { background: var(--sev-high-bg); color: var(--sev-high); }
+.badge-count { background: var(--gold); color: #fff; font-size: 10px; }
+
+.issue-expand-btn {
+  background: none; border: none; cursor: pointer; color: var(--gray-mid);
+  padding: 4px; border-radius: 3px; display: flex; align-items: center;
+}
+.issue-expand-btn:hover { color: var(--navy); background: var(--surface-alt); }
+.issue-expand-btn:focus-visible { outline: 2px solid var(--gold); }
+.issue-detail {
+  display: none; padding: 8px 14px 12px 46px; font-size: 12px;
+  background: var(--expand-bg); border-top: 1px solid var(--border-subtle);
+  color: var(--gray-mid); line-height: 1.5;
+}
+.issue-detail.open { display: block; }
+
+.hosts-toggle {
+  display: flex; align-items: center; gap: 6px; padding: 6px 14px 6px 46px;
+  cursor: pointer; font-size: 12px; font-weight: 600; color: var(--gold-dark);
+  background: var(--surface-raised); border-top: 1px solid var(--border-subtle);
+  user-select: none;
+}
+.hosts-toggle:hover { background: var(--expand-bg); color: var(--navy); }
+.hosts-toggle:focus-visible { outline: 2px solid var(--gold); outline-offset: -2px; }
+.hosts-toggle .ht-chevron {
+  display: inline-block; font-size: 10px; transition: transform 0.15s; margin-right: 2px;
+}
+.hosts-toggle.open .ht-chevron { transform: rotate(90deg); }
+.hosts-panel {
+  display: none; padding: 6px 14px 10px 46px;
+  background: var(--expand-bg); border-top: 1px solid var(--border-subtle);
+}
+.hosts-panel.open { display: block; }
+.host-row {
+  display: flex; align-items: center; gap: 8px; padding: 4px 0;
+  font-size: 12px; border-bottom: 1px solid var(--border-subtle);
+}
+.host-row:last-child { border-bottom: none; }
+.host-row input[type="checkbox"] { width: 14px; height: 14px; accent-color: var(--check-accent); cursor: pointer; flex-shrink: 0; }
+.host-row-name { color: var(--body-text); min-width: 0; }
+.host-row-name.done { text-decoration: line-through; opacity: 0.5; }
+.host-row-ip { color: var(--gray-mid); font-size: 11px; font-variant-numeric: tabular-nums; }
+.detail-label { font-weight: 700; color: var(--navy); text-transform: uppercase;
+  letter-spacing: 0.04em; font-size: 10px; margin-top: 8px; }
+.detail-label:first-child { margin-top: 0; }
+.detail-text { margin-top: 2px; color: var(--body-text); }
+.detail-caveat { margin-top: 4px; padding: 6px 10px; background: var(--kev-bg);
+  border-left: 3px solid var(--kev-border); border-radius: 0 3px 3px 0; color: var(--kev-text); font-size: 11px; }
+.detail-hosts { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.host-chip {
+  font-size: 10px; padding: 2px 6px; background: var(--surface-alt);
+  border: 1px solid var(--border); border-radius: 3px; font-variant-numeric: tabular-nums;
+  color: var(--body-text);
+}
+
+.machine-task {
+  display: grid; grid-template-columns: 32px 4px 1fr auto;
+  align-items: center; gap: 0 10px; padding: 6px 14px; min-height: 36px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.machine-task:last-child { border-bottom: none; }
+.machine-task:hover { background: var(--expand-bg); }
+.mt-name { font-size: 12px; color: var(--body-text); min-width: 0;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mt-name.done { text-decoration: line-through; opacity: 0.5; }
+.mt-detail { font-size: 10px; color: var(--gray-mid); margin-top: 1px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.machine-os { font-size: 11px; color: var(--gray-mid); padding: 2px 14px;
+  background: var(--surface-alt); border-bottom: 1px solid var(--border-subtle); }
+
+.empty-state { text-align: center; padding: 48px 24px; color: var(--gray-mid); font-size: 14px; }
+
+.toolbar { display: flex; gap: 8px; margin-left: auto; align-items: center; }
+.toolbar-group { display: flex; gap: 8px; }
+.toolbar-spacer { width: 12px; }
+.btn-clear { background: var(--surface-alt); color: var(--gray-mid); }
+.btn-clear:hover { border-color: #9B2C2C; color: #9B2C2C; }
+.toolbar-btn {
+  padding: 4px 14px; font-size: 11px; font-weight: 700; font-family: inherit;
+  border: 1px solid var(--border); border-radius: 4px; cursor: pointer;
+  text-transform: uppercase; letter-spacing: 0.04em;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+.toolbar-btn:focus-visible { outline: 2px solid var(--gold); outline-offset: 1px; }
+.btn-save { background: #276749; color: #fff; border-color: #276749; }
+.btn-save:hover { background: #22543D; border-color: #22543D; }
+.btn-save.dirty { background: #9B2C2C; border-color: #9B2C2C; animation: pulse-save 1.5s ease-in-out 1; }
+.btn-save.dirty:hover { background: #822727; border-color: #822727; }
+@keyframes pulse-save { 0%,100%{transform:scale(1)} 50%{transform:scale(1.05)} }
+.btn-load { background: var(--surface-alt); color: var(--gray-mid); }
+.btn-load:hover { border-color: var(--gold); color: var(--navy); }
+
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+  display: flex; align-items: center; justify-content: center; z-index: 200;
+}
+.modal-overlay.hidden { display: none; }
+.modal {
+  background: var(--surface-raised); border: 1px solid var(--border);
+  border-radius: 8px; box-shadow: var(--shadow-lg); padding: 32px;
+  max-width: 440px; width: 90%;
+}
+.modal-title { font-size: 16px; font-weight: 700; color: var(--navy); margin-bottom: 12px; }
+.modal-text { font-size: 13px; color: var(--gray-mid); line-height: 1.5; margin-bottom: 20px; }
+.modal-summary {
+  background: var(--surface-alt); border: 1px solid var(--border-subtle);
+  border-radius: 4px; padding: 12px; font-size: 12px; color: var(--body-text);
+  margin-bottom: 16px; font-variant-numeric: tabular-nums;
+}
+.modal-summary div { padding: 2px 0; }
+.modal-summary strong { color: var(--navy); }
+.modal-warning {
+  font-size: 11px; color: var(--kev-text); background: var(--kev-bg);
+  border-left: 3px solid var(--kev-border); padding: 8px 12px;
+  border-radius: 0 4px 4px 0; margin-bottom: 20px;
+}
+.modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+.modal-btn {
+  padding: 8px 20px; font-size: 13px; font-weight: 700; font-family: inherit;
+  border-radius: 4px; cursor: pointer; border: 1px solid var(--border);
+}
+.modal-btn-primary { background: var(--navy); color: #fff; border-color: var(--navy); }
+.modal-btn-primary:hover { opacity: 0.9; }
+.modal-btn-secondary { background: var(--surface-alt); color: var(--gray-mid); }
+.modal-btn-secondary:hover { border-color: var(--gold); color: var(--navy); }
+.modal-btn-wide { display: block; width: 100%; padding: 12px; margin-bottom: 8px; text-align: center; }
+.modal-btn:focus-visible { outline: 2px solid var(--gold); outline-offset: 1px; }
+
+.gear-btn {
+  background: none; border: none; cursor: pointer; padding: 4px;
+  color: var(--gray-mid); display: flex; align-items: center;
+  transition: color 0.15s;
+}
+.gear-btn:hover { color: var(--navy); }
+.gear-btn:focus-visible { outline: 2px solid var(--gold); outline-offset: 1px; }
+.gear-btn svg { width: 20px; height: 20px; }
+
+.theme-pills {
+  display: inline-flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden;
+}
+.theme-pill {
+  padding: 6px 14px; font-size: 12px; font-weight: 700; font-family: inherit;
+  background: var(--surface-alt); color: var(--gray-mid); border: none;
+  cursor: pointer; transition: background 0.15s, color 0.15s;
+  border-right: 1px solid var(--border);
+}
+.theme-pill:last-child { border-right: none; }
+.theme-pill.active { background: var(--navy); color: #fff; }
+.theme-pill:hover:not(.active) { color: var(--navy); }
+.theme-pill:focus-visible { outline: 2px solid var(--gold); outline-offset: -2px; }
+.ui-hidden { display: none !important; }
+
+@media (max-width: 640px) {
+  .app-header { padding: 12px 16px 10px; }
+  .header-meta { flex-wrap: wrap; gap: 8px; }
+  .tab-bar { margin: 0 16px; }
+  .search-bar { margin: 8px 16px 0; flex-wrap: wrap; }
+  .content { padding: 12px 16px 60px; }
+  .issue-row { grid-template-columns: 28px 4px 1fr auto; gap: 0 8px; padding: 8px 10px; }
+  .issue-badges { flex-wrap: wrap; }
+  .issue-detail { padding-left: 32px; }
+}
+</style>
+
+<div class="app-header">
+  <div class="header-top">
+    <button class="gear-btn" onclick="toggleSettingsModal()" aria-label="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg></button>
+    <span class="header-logo" role="img" aria-label="SecureIT"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 28" height="28"><text x="0" y="22" font-family="Arial,Helvetica,sans-serif" font-size="22" font-weight="700" letter-spacing="0.5"><tspan class="logo-main">Secure</tspan><tspan class="logo-accent">IT</tspan></text></svg></span>
+    <span class="header-title" id="headerTitle"></span>
+    <div class="toolbar" id="toolbar">
+      <div class="toolbar-group">
+        <button class="toolbar-btn btn-load" onclick="pickJsonFile()">Load</button>
+        <button class="toolbar-btn btn-save" id="saveBtn" onclick="saveToFile()">Save</button>
+      </div>
+      <div class="toolbar-spacer"></div>
+      <button class="toolbar-btn btn-clear" onclick="clearData()">Clear</button>
+    </div>
+  </div>
+  <div class="header-meta" id="headerMeta"></div>
+  <div class="progress-wrap">
+    <div class="progress-bar"><div class="progress-fill" id="globalFill"></div></div>
+    <div class="progress-label" id="globalLabel">0 / 0</div>
+  </div>
+  <div class="sticky-nav">
+    <div class="tab-bar">
+      <button class="tab-btn active" data-view="issues" onclick="switchView('issues')">Issues</button>
+      <button class="tab-btn" data-view="machines" onclick="switchView('machines')">Machines</button>
+    </div>
+    <div class="search-bar">
+      <input class="search-input" id="searchInput" type="text" placeholder="Filter by name, IP, CVE, plugin ID...">
+      <button class="filter-btn" id="filterUndone" onclick="toggleUndoneFilter()">Remaining</button>
+    </div>
+  </div>
+</div>
+
+<div class="content">
+  <div class="view-panel active" id="issuesView"></div>
+  <div class="view-panel" id="machinesView"></div>
+</div>
+
+<input type="file" id="fileInput" accept=".json" style="display:none">
+
+<div class="modal-overlay hidden" id="startupModal">
+  <div class="modal">
+    <div class="modal-title">Remediation Tracker</div>
+    <div class="modal-text">No local data found in this browser. Choose how to load data:</div>
+    <button class="modal-btn modal-btn-primary modal-btn-wide" onclick="loadInitialData()">Load Initial Values</button>
+    <button class="modal-btn modal-btn-secondary modal-btn-wide" onclick="pickJsonFile()">Load JSON File</button>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="confirmModal">
+  <div class="modal">
+    <div class="modal-title">Load Remediation Data</div>
+    <div class="modal-summary" id="confirmSummary"></div>
+    <div class="modal-warning">This will replace all current data and progress.</div>
+    <div class="modal-actions">
+      <button class="modal-btn modal-btn-secondary" onclick="cancelLoad()">Cancel</button>
+      <button class="modal-btn modal-btn-primary" onclick="confirmLoad()">Confirm Load</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="clearModal">
+  <div class="modal">
+    <div class="modal-title">Clear Data</div>
+    <div class="modal-warning">Clear all data and progress? This cannot be undone.</div>
+    <div class="modal-actions">
+      <button class="modal-btn modal-btn-secondary" onclick="document.getElementById('clearModal').classList.add('hidden')">Cancel</button>
+      <button class="modal-btn modal-btn-primary" style="background:#9B2C2C;border-color:#9B2C2C" onclick="confirmClear()">Clear</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="settingsModal" style="z-index:210">
+  <div class="modal">
+    <div class="modal-title">Settings</div>
+    <div style="display:flex;justify-content:center;padding:8px 0 4px">
+      <div class="theme-pills">
+        <button class="theme-pill" data-theme-val="light" onclick="setTheme('light')">Light</button>
+        <button class="theme-pill" data-theme-val="dark" onclick="setTheme('dark')">Dark</button>
+        <button class="theme-pill active" data-theme-val="system" onclick="setTheme('system')">System</button>
+      </div>
+    </div>
+    <div class="modal-actions" style="margin-top:16px">
+      <button class="modal-btn modal-btn-primary" onclick="closeSettingsModal()">Done</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ======================================================================
+   DATA PAYLOAD — Replace the JSON below with your Remediation Tracker data.
+   See Instructions.md for the full schema and LLM-INSTRUCTIONS.md
+   for co-pilot guidance on generating this entire HTML file from a .nessus file.
+   ====================================================================== */
+
+const INITIAL_DATA = {
+  "meta": {
+    "scan": "Example Corp Q3 2026 Internal Scan",
+    "scan_date": "2026-09-15"
+  },
+  "issues": [
+    {
+      "pid": "97041",
+      "name": "SSL Certificate Cannot Be Trusted",
+      "family": "General",
+      "score": 9.2,
+      "src": "VPR",
+      "sev": 3,
+      "kev": false,
+      "kevdate": "",
+      "exploit": false,
+      "maturity": "",
+      "epss": 0.02,
+      "cves": [],
+      "ports": ["443/tcp", "8443/tcp"],
+      "workstream": "Certificate management",
+      "effort": "Low",
+      "estimate": "1 to 2 hours",
+      "remediation": "Replace self-signed or expired certificates with certificates issued by a trusted CA. Use ACME or your internal PKI.",
+      "caveat": "",
+      "nessus_solution": "Purchase or generate a proper TLS/SSL certificate for this service.",
+      "tasks": [
+        {"id": "97041::10.0.1.10::0", "host": "10.0.1.10", "detail": "Self-signed certificate on port 443/tcp, expired 2026-06-01."},
+        {"id": "97041::10.0.1.20::0", "host": "10.0.1.20", "detail": "Self-signed certificate on port 8443/tcp."},
+        {"id": "97041::10.0.1.30::0", "host": "10.0.1.30", "detail": "Expired certificate, issuer CN=InternalCA, not after 2026-03-15."}
+      ]
+    },
+    {
+      "pid": "156032",
+      "name": "Apache HTTP Server < 2.4.60 Multiple Vulnerabilities",
+      "family": "Web Servers",
+      "score": 9.0,
+      "src": "VPR",
+      "sev": 3,
+      "kev": true,
+      "kevdate": "2026/07/22",
+      "exploit": true,
+      "maturity": "Functional",
+      "epss": 0.68,
+      "cves": ["CVE-2026-31311", "CVE-2026-31312"],
+      "ports": ["80/tcp", "443/tcp"],
+      "workstream": "Web server patching",
+      "effort": "Medium",
+      "estimate": "4 to 6 hours",
+      "remediation": "Upgrade Apache to 2.4.60 or later. On RHEL/CentOS: yum update httpd. On Debian/Ubuntu: apt upgrade apache2. Restart the service afterward.",
+      "caveat": "Coordinate with application owners before restarting web services during business hours.",
+      "nessus_solution": "Upgrade to Apache version 2.4.60 or later.",
+      "tasks": [
+        {"id": "156032::10.0.1.10::0", "host": "10.0.1.10", "detail": "Apache/2.4.51 detected on port 80/tcp."},
+        {"id": "156032::10.0.1.40::0", "host": "10.0.1.40", "detail": "Apache/2.4.49 detected on port 443/tcp."}
+      ]
+    },
+    {
+      "pid": "170204",
+      "name": "OpenSSH < 9.8 Remote Code Execution (regreSSHion)",
+      "family": "General",
+      "score": 9.8,
+      "src": "CVSSv3",
+      "sev": 3,
+      "kev": true,
+      "kevdate": "2026/08/01",
+      "exploit": true,
+      "maturity": "High",
+      "epss": 0.91,
+      "cves": ["CVE-2024-6387"],
+      "ports": ["22/tcp"],
+      "workstream": "OS patching",
+      "effort": "Low",
+      "estimate": "2 to 3 hours",
+      "remediation": "Update OpenSSH to 9.8 or later via the OS package manager. Restart sshd. If patching is delayed, set LoginGraceTime to 0 in sshd_config as a temporary mitigation (disables the race window but may affect concurrent logins).",
+      "caveat": "LoginGraceTime=0 can cause connection issues under high concurrency. Prefer the patch.",
+      "nessus_solution": "Upgrade to OpenSSH 9.8 or later.",
+      "tasks": [
+        {"id": "170204::10.0.1.10::0", "host": "10.0.1.10", "detail": "OpenSSH 8.9p1 detected."},
+        {"id": "170204::10.0.1.20::0", "host": "10.0.1.20", "detail": "OpenSSH 9.3p1 detected."},
+        {"id": "170204::10.0.1.40::0", "host": "10.0.1.40", "detail": "OpenSSH 8.2p1 detected."},
+        {"id": "170204::10.0.1.50::0", "host": "10.0.1.50", "detail": "OpenSSH 7.6p1 detected."}
+      ]
+    },
+    {
+      "pid": "63145",
+      "name": "SMB Signing Not Required",
+      "family": "Windows",
+      "score": 8.5,
+      "src": "VPR",
+      "sev": 2,
+      "kev": false,
+      "kevdate": "",
+      "exploit": true,
+      "maturity": "Functional",
+      "epss": 0.12,
+      "cves": [],
+      "ports": ["445/tcp"],
+      "workstream": "Windows hardening",
+      "effort": "Low",
+      "estimate": "1 to 2 hours",
+      "remediation": "Enable SMB signing via Group Policy: Computer Configuration > Policies > Windows Settings > Security Settings > Local Policies > Security Options. Set 'Microsoft network server: Digitally sign communications (always)' to Enabled.",
+      "caveat": "Legacy devices or printers that cannot negotiate signed SMB may lose connectivity.",
+      "nessus_solution": "Enforce message signing in the host's configuration.",
+      "tasks": [
+        {"id": "63145::10.0.1.30::0", "host": "10.0.1.30", "detail": "SMB signing is not required on port 445/tcp."},
+        {"id": "63145::10.0.1.50::0", "host": "10.0.1.50", "detail": "SMB signing is not required on port 445/tcp."}
+      ]
+    },
+    {
+      "pid": "110385",
+      "name": "Microsoft Windows Unquoted Service Path Enumeration",
+      "family": "Windows",
+      "score": 8.5,
+      "src": "VPR",
+      "sev": 2,
+      "kev": false,
+      "kevdate": "",
+      "exploit": false,
+      "maturity": "",
+      "epss": 0.04,
+      "cves": [],
+      "ports": ["445/tcp"],
+      "workstream": "Windows hardening",
+      "effort": "Medium",
+      "estimate": "3 to 5 hours",
+      "remediation": "Add double quotes around the service binary path in the Windows registry for each affected service. HKLM\\SYSTEM\\CurrentControlSet\\Services\\<ServiceName>\\ImagePath. Test each service restarts correctly after the change.",
+      "caveat": "Some third party installers recreate the unquoted path on update. Recheck after software updates.",
+      "nessus_solution": "Ensure that any service that contains a space in the path encloses the path in double-quotes.",
+      "tasks": [
+        {"id": "110385::10.0.1.30::0", "host": "10.0.1.30", "detail": "Unquoted path: C:\\Program Files\\Vendor App\\service.exe"},
+        {"id": "110385::10.0.1.50::0", "host": "10.0.1.50", "detail": "Unquoted path: C:\\Program Files\\Legacy Tool\\daemon.exe"}
+      ]
+    },
+    {
+      "pid": "42873",
+      "name": "SSL Medium Strength Cipher Suites Supported (SWEET32)",
+      "family": "General",
+      "score": 8.6,
+      "src": "VPR",
+      "sev": 2,
+      "kev": false,
+      "kevdate": "",
+      "exploit": false,
+      "maturity": "",
+      "epss": 0.01,
+      "cves": ["CVE-2016-2183"],
+      "ports": ["443/tcp", "3389/tcp"],
+      "workstream": "Certificate management",
+      "effort": "Low",
+      "estimate": "1 to 2 hours",
+      "remediation": "Disable 3DES and RC4 cipher suites on all TLS endpoints. For IIS, use IIS Crypto tool or configure via registry. For Apache/Nginx, update the SSLCipherSuite directive.",
+      "caveat": "Very old clients (IE8 on XP) may lose connectivity.",
+      "nessus_solution": "Reconfigure the affected application to avoid use of medium strength ciphers.",
+      "tasks": [
+        {"id": "42873::10.0.1.10::0", "host": "10.0.1.10", "detail": "3DES cipher TLS_RSA_WITH_3DES_EDE_CBC_SHA on port 443/tcp."},
+        {"id": "42873::10.0.1.30::0", "host": "10.0.1.30", "detail": "3DES cipher on port 3389/tcp (RDP)."}
+      ]
+    },
+    {
+      "pid": "158901",
+      "name": "PHP < 8.2.20 Multiple Vulnerabilities",
+      "family": "CGI abuses",
+      "score": 9.1,
+      "src": "VPR",
+      "sev": 3,
+      "kev": false,
+      "kevdate": "",
+      "exploit": false,
+      "maturity": "",
+      "epss": 0.15,
+      "cves": ["CVE-2026-28430", "CVE-2026-28431"],
+      "ports": ["80/tcp"],
+      "workstream": "Web server patching",
+      "effort": "Medium",
+      "estimate": "3 to 4 hours",
+      "remediation": "Upgrade PHP to 8.2.20 or later. On Debian: apt install php8.2. Restart the web server and verify application functionality.",
+      "caveat": "Test in staging first. PHP minor version upgrades occasionally break deprecated function calls.",
+      "nessus_solution": "Upgrade to PHP version 8.2.20 or later.",
+      "tasks": [
+        {"id": "158901::10.0.1.40::0", "host": "10.0.1.40", "detail": "PHP/8.1.12 detected via X-Powered-By header."}
+      ]
+    },
+    {
+      "pid": "10092",
+      "name": "FTP Server Anonymous Login Permitted",
+      "family": "FTP",
+      "score": 8.8,
+      "src": "VPR",
+      "sev": 2,
+      "kev": false,
+      "kevdate": "",
+      "exploit": true,
+      "maturity": "Functional",
+      "epss": 0.34,
+      "cves": [],
+      "ports": ["21/tcp"],
+      "workstream": "Service hardening",
+      "effort": "Low",
+      "estimate": "30 minutes",
+      "remediation": "Disable anonymous FTP login. In vsftpd.conf set anonymous_enable=NO. In IIS, remove the Anonymous Authentication binding from the FTP site. Better yet, replace FTP with SFTP.",
+      "caveat": "Verify no automated processes depend on anonymous FTP before disabling.",
+      "nessus_solution": "Disable anonymous FTP if it is not required.",
+      "tasks": [
+        {"id": "10092::10.0.1.20::0", "host": "10.0.1.20", "detail": "Anonymous FTP login permitted on port 21/tcp. Writable directory detected."}
+      ]
+    },
+    {
+      "pid": "166555",
+      "name": "WinVerifyTrust Signature Validation CVE-2013-3900 Mitigation",
+      "family": "Windows : Microsoft Bulletins",
+      "score": 9.5,
+      "src": "VPR",
+      "sev": 3,
+      "kev": true,
+      "kevdate": "2022/07/10",
+      "exploit": true,
+      "maturity": "High",
+      "epss": 0.45,
+      "cves": ["CVE-2013-3900"],
+      "ports": ["445/tcp"],
+      "workstream": "Windows hardening",
+      "effort": "Low",
+      "estimate": "1 to 2 hours",
+      "remediation": "Deploy both registry values via Group Policy Preferences: HKLM\\Software\\Microsoft\\Cryptography\\Wintrust\\Config\\EnableCertPaddingCheck = 1 (REG_DWORD) and the same under Wow6432Node. Reboot on normal cycle.",
+      "caveat": "Can cause validation failures for installers signed with padded signatures. Pilot on a test OU first.",
+      "nessus_solution": "Add and enable registry value EnableCertPaddingCheck.",
+      "tasks": [
+        {"id": "166555::10.0.1.30::0", "host": "10.0.1.30", "detail": "EnableCertPaddingCheck is not present in the registry."},
+        {"id": "166555::10.0.1.50::0", "host": "10.0.1.50", "detail": "EnableCertPaddingCheck is not present in the registry."}
+      ]
+    },
+    {
+      "pid": "153412",
+      "name": "Docker Daemon Exposed Without TLS",
+      "family": "Misc.",
+      "score": 9.4,
+      "src": "VPR",
+      "sev": 3,
+      "kev": false,
+      "kevdate": "",
+      "exploit": true,
+      "maturity": "Functional",
+      "epss": 0.55,
+      "cves": [],
+      "ports": ["2375/tcp"],
+      "workstream": "Service hardening",
+      "effort": "Medium",
+      "estimate": "2 to 3 hours",
+      "remediation": "Bind the Docker daemon to a Unix socket only (default), or enable TLS mutual authentication if remote API access is required. Remove the -H tcp://0.0.0.0:2375 flag from the daemon configuration.",
+      "caveat": "CI/CD pipelines or monitoring agents may use the unauthenticated API. Coordinate before changing.",
+      "nessus_solution": "Enable TLS on the Docker daemon or restrict access to the Docker socket.",
+      "tasks": [
+        {"id": "153412::10.0.1.20::0", "host": "10.0.1.20", "detail": "Docker API accessible without authentication on port 2375/tcp. Version 24.0.5."}
+      ]
+    }
+  ],
+  "machines": [
+    {
+      "ip": "10.0.1.10",
+      "name": "web-prod-01",
+      "os": "Ubuntu 22.04 LTS",
+      "type": "general-purpose",
+      "klass": "Server",
+      "subnet": "10.0.1.0/24",
+      "tasks": ["97041::10.0.1.10::0", "156032::10.0.1.10::0", "170204::10.0.1.10::0", "42873::10.0.1.10::0"]
+    },
+    {
+      "ip": "10.0.1.20",
+      "name": "dev-docker-01",
+      "os": "Debian 12",
+      "type": "general-purpose",
+      "klass": "Server",
+      "subnet": "10.0.1.0/24",
+      "tasks": ["97041::10.0.1.20::0", "170204::10.0.1.20::0", "10092::10.0.1.20::0", "153412::10.0.1.20::0"]
+    },
+    {
+      "ip": "10.0.1.30",
+      "name": "DC01",
+      "os": "Windows Server 2022",
+      "type": "general-purpose",
+      "klass": "Server",
+      "subnet": "10.0.1.0/24",
+      "tasks": ["97041::10.0.1.30::0", "63145::10.0.1.30::0", "110385::10.0.1.30::0", "42873::10.0.1.30::0", "166555::10.0.1.30::0"]
+    },
+    {
+      "ip": "10.0.1.40",
+      "name": "app-staging-01",
+      "os": "CentOS Stream 9",
+      "type": "general-purpose",
+      "klass": "Server",
+      "subnet": "10.0.1.0/24",
+      "tasks": ["156032::10.0.1.40::0", "170204::10.0.1.40::0", "158901::10.0.1.40::0"]
+    },
+    {
+      "ip": "10.0.1.50",
+      "name": "ADMIN-PC",
+      "os": "Windows 11 23H2",
+      "type": "general-purpose",
+      "klass": "Workstation",
+      "subnet": "10.0.1.0/24",
+      "tasks": ["170204::10.0.1.50::0", "63145::10.0.1.50::0", "110385::10.0.1.50::0", "166555::10.0.1.50::0"]
+    }
+  ]
+};
+
+/* ====================================================================== */
+
+const SESSION_KEY = 'secureit-rem-session';
+let DATA = null;
+let SCAN_NAME = '';
+let ALL_TASK_IDS = new Set();
+let WORKSTREAM_MAP = {};
+
+// --- State ---
+let checked = {};
+let activeView = 'issues';
+let searchTerm = '';
+let filterUndone = false;
+let saveDirty = false;
+let pendingLoadData = null;
+const openDetails = new Set();
+const openHostPanels = new Set();
+
+// --- Sanitization ---
+function sanitizeString(s) {
+  if (typeof s !== 'string') return String(s == null ? '' : s);
+  return s;
+}
+
+function sanitizeData(raw) {
+  if (!raw || typeof raw !== 'object') throw new Error('Invalid data: not an object');
+  if (!raw.meta || typeof raw.meta !== 'object') throw new Error('Missing or invalid meta');
+  if (!Array.isArray(raw.issues)) throw new Error('Missing or invalid issues array');
+  if (!Array.isArray(raw.machines)) throw new Error('Missing or invalid machines array');
+
+  const meta = {
+    scan: sanitizeString(raw.meta.scan),
+    scan_date: sanitizeString(raw.meta.scan_date)
+  };
+
+  const issues = raw.issues.map((iss, idx) => {
+    if (!iss || typeof iss !== 'object') throw new Error('Issue ' + idx + ' is not an object');
+    if (!Array.isArray(iss.tasks)) throw new Error('Issue ' + idx + ' missing tasks array');
+    const tasks = iss.tasks.map(t => {
+      if (!t || typeof t !== 'object') return null;
+      const id = sanitizeString(t.id);
+      if (!/^[0-9]+::[^:]+::\d+$/.test(id)) throw new Error('Invalid task id format: ' + id);
+      return { id: id, host: sanitizeString(t.host), detail: sanitizeString(t.detail || '') };
+    }).filter(Boolean);
+    return {
+      pid: sanitizeString(iss.pid),
+      name: sanitizeString(iss.name),
+      family: sanitizeString(iss.family || ''),
+      score: typeof iss.score === 'number' ? iss.score : parseFloat(iss.score) || 0,
+      src: sanitizeString(iss.src || 'CVSSv3'),
+      sev: typeof iss.sev === 'number' ? Math.floor(iss.sev) : 0,
+      kev: iss.kev === true,
+      kevdate: sanitizeString(iss.kevdate || ''),
+      exploit: iss.exploit === true,
+      maturity: sanitizeString(iss.maturity || ''),
+      epss: typeof iss.epss === 'number' ? iss.epss : 0,
+      cves: Array.isArray(iss.cves) ? iss.cves.map(sanitizeString) : [],
+      ports: Array.isArray(iss.ports) ? iss.ports.map(sanitizeString) : [],
+      workstream: sanitizeString(iss.workstream || 'Uncategorized'),
+      effort: sanitizeString(iss.effort || 'Medium'),
+      estimate: sanitizeString(iss.estimate || ''),
+      remediation: sanitizeString(iss.remediation || ''),
+      caveat: sanitizeString(iss.caveat || ''),
+      nessus_solution: sanitizeString(iss.nessus_solution || ''),
+      tasks: tasks
+    };
+  });
+
+  const machines = raw.machines.map((m, idx) => {
+    if (!m || typeof m !== 'object') throw new Error('Machine ' + idx + ' is not an object');
+    return {
+      ip: sanitizeString(m.ip),
+      name: sanitizeString(m.name || ''),
+      os: sanitizeString(m.os || 'Unknown'),
+      type: sanitizeString(m.type || ''),
+      klass: sanitizeString(m.klass || 'Workstation'),
+      subnet: sanitizeString(m.subnet || ''),
+      tasks: Array.isArray(m.tasks) ? m.tasks.map(sanitizeString) : []
+    };
+  });
+
+  return { meta: meta, issues: issues, machines: machines };
+}
+
+function sanitizeChecked(raw) {
+  if (!raw || typeof raw !== 'object') return {};
+  const clean = {};
+  Object.keys(raw).forEach(function(k) {
+    if (typeof k === 'string' && /^[0-9]+::[^:]+::\d+$/.test(k) && raw[k] === 1) {
+      clean[k] = 1;
+    }
+  });
+  return clean;
+}
+
+// --- Session persistence ---
+function saveSession() {
+  try {
+    localStorage.setItem(SESSION_KEY, JSON.stringify({
+      type: 'secureit-remediation-tracker', version: 1,
+      scanName: SCAN_NAME, data: DATA, checked: checked
+    }));
+  } catch(e) {}
+}
+function loadSession() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(SESSION_KEY));
+    if (raw && raw.data && raw.type === 'secureit-remediation-tracker') return raw;
+  } catch(e) {}
+  return null;
+}
+
+function saveState() {
+  saveSession();
+  saveDirty = true;
+  updateSaveButton();
+}
+
+function getAllTaskIds() {
+  const ids = new Set();
+  if (DATA) DATA.issues.forEach(iss => iss.tasks.forEach(t => ids.add(t.id)));
+  return ids;
+}
+
+function isChecked(id) { return !!checked[id]; }
+function setChecked(id, val) {
+  if (val) checked[id] = 1; else delete checked[id];
+  saveState();
+}
+
+// --- Save button state ---
+function updateSaveButton() {
+  const btn = document.getElementById('saveBtn');
+  if (!btn) return;
+  btn.classList.toggle('dirty', saveDirty);
+}
+
+// --- Modal helpers ---
+function showStartupModal() {
+  document.querySelector('.sticky-nav').classList.add('ui-hidden');
+  document.querySelector('.content').classList.add('ui-hidden');
+  document.getElementById('toolbar').classList.add('ui-hidden');
+  document.getElementById('headerMeta').innerHTML = '';
+  document.getElementById('headerTitle').textContent = 'Remediation Tracker';
+  document.title = 'Remediation Tracker';
+  document.getElementById('globalFill').style.width = '0%';
+  document.getElementById('globalLabel').textContent = '';
+  document.getElementById('startupModal').classList.remove('hidden');
+}
+
+function showConfirmModal(data, checkedState) {
+  pendingLoadData = { data: data, checked: checkedState };
+  const issueCount = data.issues.length;
+  const machineCount = data.machines.length;
+  const taskCount = data.issues.reduce(function(s, i) { return s + i.tasks.length; }, 0);
+  document.getElementById('confirmSummary').innerHTML =
+    '<div><strong>Scan:</strong> ' + esc(data.meta.scan) + '</div>' +
+    '<div><strong>Date:</strong> ' + esc(data.meta.scan_date) + '</div>' +
+    '<div><strong>Issues:</strong> ' + issueCount + '</div>' +
+    '<div><strong>Machines:</strong> ' + machineCount + '</div>' +
+    '<div><strong>Tasks:</strong> ' + taskCount + '</div>' +
+    (checkedState ? '<div><strong>Progress:</strong> ' + Object.keys(checkedState).length + ' tasks checked</div>' : '');
+  document.getElementById('confirmModal').classList.remove('hidden');
+}
+
+function cancelLoad() {
+  pendingLoadData = null;
+  document.getElementById('confirmModal').classList.add('hidden');
+}
+
+function confirmLoad() {
+  if (!pendingLoadData) return;
+  document.getElementById('confirmModal').classList.add('hidden');
+  initWithData(pendingLoadData.data, pendingLoadData.checked);
+  pendingLoadData = null;
+}
+
+// --- File save/load ---
+function saveToFile() {
+  const payload = JSON.stringify({
+    type: 'secureit-remediation-tracker', version: 1,
+    scanName: SCAN_NAME, data: DATA, checked: checked
+  }, null, 2);
+  const blob = new Blob([payload], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = SCAN_NAME.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-remediation.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  saveDirty = false;
+  updateSaveButton();
+}
+
+function pickJsonFile() {
+  document.getElementById('fileInput').click();
+}
+
+function handleFileLoad(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const raw = JSON.parse(e.target.result);
+      var cleanData, cleanChecked = null;
+
+      if (raw.type === 'secureit-remediation-tracker' && raw.data) {
+        cleanData = sanitizeData(raw.data);
+        if (raw.checked) cleanChecked = sanitizeChecked(raw.checked);
+      } else if (raw.meta && raw.issues && raw.machines) {
+        cleanData = sanitizeData(raw);
+      } else {
+        throw new Error('Unrecognized file format. Expected a remediation tracker export or raw data JSON.');
+      }
+
+      showConfirmModal(cleanData, cleanChecked);
+    } catch(err) {
+      alert('Failed to load file: ' + err.message);
+    }
+    event.target.value = '';
+  };
+  reader.readAsText(file);
+}
+
+function loadInitialData() {
+  try {
+    const clean = sanitizeData(INITIAL_DATA);
+    document.getElementById('startupModal').classList.add('hidden');
+    initWithData(clean, null);
+    saveSession();
+  } catch(err) {
+    alert('Initial data failed validation: ' + err.message);
+  }
+}
+
+function clearData() {
+  document.getElementById('clearModal').classList.remove('hidden');
+}
+function confirmClear() {
+  document.getElementById('clearModal').classList.add('hidden');
+  try { localStorage.removeItem(SESSION_KEY); } catch(e) {}
+  DATA = null;
+  CHECKED = {};
+  document.getElementById('issuesView').innerHTML = '';
+  document.getElementById('machinesView').innerHTML = '';
+  showStartupModal();
+}
+
+// --- Initialize with data ---
+function initWithData(data, checkedState) {
+  DATA = data;
+  SCAN_NAME = DATA.meta.scan || 'Untitled';
+  ALL_TASK_IDS = getAllTaskIds();
+
+  WORKSTREAM_MAP = {};
+  DATA.issues.forEach(function(iss) {
+    var key = 'ig-' + iss.workstream.replace(/\W+/g, '-');
+    if (!WORKSTREAM_MAP[key]) WORKSTREAM_MAP[key] = [];
+    WORKSTREAM_MAP[key].push(iss);
+  });
+
+  if (checkedState && typeof checkedState === 'object') {
+    checked = {};
+    Object.keys(checkedState).forEach(function(k) {
+      if (ALL_TASK_IDS.has(k)) checked[k] = 1;
+    });
+  } else {
+    checked = {};
+  }
+
+  saveDirty = false;
+  updateSaveButton();
+  saveSession();
+  updateHeaderMeta();
+
+  document.querySelector('.sticky-nav').classList.remove('ui-hidden');
+  document.querySelector('.content').classList.remove('ui-hidden');
+  document.getElementById('toolbar').classList.remove('ui-hidden');
+  document.getElementById('startupModal').classList.add('hidden');
+  document.getElementById('confirmModal').classList.add('hidden');
+
+  refreshAll();
+}
+
+function esc(s) {
+  const d = document.createElement('div'); d.textContent = s; return d.innerHTML;
+}
+function sevClass(effort) {
+  if (effort === 'Low') return 'low';
+  if (effort === 'Medium') return 'med';
+  return 'high';
+}
+function sevFromScore(score) {
+  if (score >= 9.0) return 'high';
+  if (score >= 8.5) return 'med';
+  return 'low';
+}
+
+function chevronSvg() {
+  return '<svg class="group-chevron" viewBox="0 0 20 20" fill="currentColor"><path d="M6.3 7.7a1 1 0 011.4 0L10 10l2.3-2.3a1 1 0 111.4 1.4l-3 3a1 1 0 01-1.4 0l-3-3a1 1 0 010-1.4z"/></svg>';
+}
+function expandSvg() {
+  return '<svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor"><path d="M9 5a1 1 0 012 0v4h4a1 1 0 010 2h-4v4a1 1 0 01-2 0v-4H5a1 1 0 010-2h4V5z"/></svg>';
+}
+
+function renderIssues() {
+  const groups = {};
+  const order = [];
+  DATA.issues.forEach(iss => {
+    const ws = iss.workstream;
+    if (!groups[ws]) { groups[ws] = []; order.push(ws); }
+    groups[ws].push(iss);
+  });
+
+  let html = '';
+  order.forEach(ws => {
+    const issues = groups[ws];
+    const allTasks = issues.flatMap(i => i.tasks);
+    const matchedIssues = issues.filter(i => matchesSearch(i, null));
+    if (matchedIssues.length === 0) return;
+
+    const total = allTasks.length;
+    const done = allTasks.filter(t => isChecked(t.id)).length;
+    const grpId = 'ig-' + ws.replace(/\W+/g, '-');
+
+    html += '<div class="group" id="' + grpId + '">';
+    html += '<div class="group-header" tabindex="0" onclick="toggleGroup(\'' + grpId + '\')" onkeydown="if(event.key===\'Enter\')toggleGroup(\'' + grpId + '\')">';
+    html += chevronSvg();
+    html += '<span class="group-title">' + esc(ws) + '</span>';
+    html += '<span class="group-count" data-gcount="' + grpId + '">' + done + '/' + total + '</span>';
+    html += '<div class="group-progress"><div class="group-progress-fill" data-gfill="' + grpId + '" style="width:' + (total ? (done/total*100) : 0) + '%"></div></div>';
+    html += '<div class="group-actions">';
+    html += '<button class="group-action" onclick="event.stopPropagation();checkGroup(\'' + grpId + '\',true)">All</button>';
+    html += '<button class="group-action" onclick="event.stopPropagation();checkGroup(\'' + grpId + '\',false)">None</button>';
+    html += '</div></div>';
+    html += '<div class="group-body" data-gbody="' + grpId + '">';
+
+    matchedIssues.forEach(iss => {
+      const issDone = iss.tasks.every(t => isChecked(t.id));
+      const detailId = 'det-' + iss.pid;
+      html += '<div class="issue-card" data-pid="' + iss.pid + '" data-gid="' + grpId + '">';
+      html += '<div class="issue-row">';
+      html += '<div class="issue-cb"><input type="checkbox" ' + (issDone ? 'checked' : '') +
+        ' onchange="toggleIssue(\'' + iss.pid + '\',this.checked)" aria-label="Mark ' + esc(iss.name) + '"></div>';
+      html += '<div class="sev-stripe ' + sevFromScore(iss.score) + '"></div>';
+      html += '<div class="issue-info">';
+      html += '<div class="issue-name' + (issDone ? ' done' : '') + '" data-iname="' + iss.pid + '">' + esc(iss.name) + '</div>';
+      html += '<div class="issue-sub">';
+      html += '<span>' + iss.tasks.length + ' host' + (iss.tasks.length !== 1 ? 's' : '') + '</span>';
+      html += '<span>' + esc(iss.family) + '</span>';
+      if (iss.estimate) html += '<span>' + esc(iss.estimate) + '</span>';
+      html += '</div></div>';
+      html += '<div class="issue-badges">';
+      html += '<span class="badge badge-score">' + iss.score.toFixed(1) + ' ' + iss.src + '</span>';
+      if (iss.kev) html += '<span class="badge badge-kev">CISA KEV</span>';
+      if (iss.exploit) html += '<span class="badge badge-exploit">Exploit</span>';
+      html += '<span class="badge badge-effort-' + sevClass(iss.effort) + '">' + iss.effort + '</span>';
+      html += '<button class="issue-expand-btn" onclick="toggleDetail(\'' + detailId + '\')" aria-label="Expand remediation details">' + expandSvg() + '</button>';
+      html += '</div></div>';
+
+      const hostsId = 'hosts-' + iss.pid;
+      const doneTasks = iss.tasks.filter(t => isChecked(t.id)).length;
+      const isHostsOpen = openHostPanels.has(iss.pid);
+      html += '<div class="hosts-toggle' + (isHostsOpen ? ' open' : '') + '" tabindex="0" onclick="toggleHosts(\'' + iss.pid + '\')" onkeydown="if(event.key===\'Enter\')toggleHosts(\'' + iss.pid + '\')">';
+      html += '<span class="ht-chevron">&#9654;</span> ';
+      html += doneTasks + ' / ' + iss.tasks.length + ' host' + (iss.tasks.length !== 1 ? 's' : '') + ' resolved';
+      html += '</div>';
+
+      html += '<div class="hosts-panel' + (isHostsOpen ? ' open' : '') + '" id="' + hostsId + '">';
+      iss.tasks.forEach(t => {
+        const m = DATA.machines.find(mm => mm.ip === t.host);
+        const hostName = m && m.name ? m.name : '';
+        const isDone = isChecked(t.id);
+        html += '<div class="host-row">';
+        html += '<input type="checkbox" ' + (isDone ? 'checked' : '') +
+          ' onchange="toggleTask(\'' + t.id + '\',this.checked)" aria-label="' + esc(t.host) + '">';
+        html += '<span class="host-row-name' + (isDone ? ' done' : '') + '">' + (hostName ? esc(hostName) : '') + '</span>';
+        html += '<span class="host-row-ip">' + esc(t.host) + '</span>';
+        html += '</div>';
+      });
+      html += '</div>';
+
+      html += '<div class="issue-detail' + (openDetails.has(iss.pid) ? ' open' : '') + '" id="' + detailId + '">';
+      html += '<div class="detail-label">Remediation</div>';
+      html += '<div class="detail-text">' + esc(iss.remediation || iss.nessus_solution) + '</div>';
+      if (iss.caveat) {
+        html += '<div class="detail-caveat">' + esc(iss.caveat) + '</div>';
+      }
+      if (iss.cves && iss.cves.length) {
+        html += '<div class="detail-label">CVEs</div>';
+        html += '<div class="detail-text">' + iss.cves.slice(0, 12).map(c => esc(c)).join(', ') +
+          (iss.cves.length > 12 ? ' + ' + (iss.cves.length - 12) + ' more' : '') + '</div>';
+      }
+      if (iss.tasks.some(t => t.detail)) {
+        html += '<div class="detail-label">Plugin Output</div>';
+        const seen = new Set();
+        iss.tasks.forEach(t => {
+          if (t.detail && !seen.has(t.detail)) {
+            seen.add(t.detail);
+            html += '<div class="detail-text" style="font-size:11px;font-family:monospace;word-break:break-all">' + esc(t.detail) + '</div>';
+          }
+        });
+      }
+      html += '</div>';
+      html += '</div>';
+    });
+    html += '</div></div>';
+  });
+
+  if (!html) html = '<div class="empty-state">No issues match your filter.</div>';
+  document.getElementById('issuesView').innerHTML = html;
+}
+
+function renderMachines() {
+  const klasses = ['Server', 'Workstation', 'Embedded', 'Legacy'];
+  const groups = {};
+  DATA.machines.forEach(m => {
+    const k = m.klass || 'Workstation';
+    if (!groups[k]) groups[k] = [];
+    groups[k].push(m);
+  });
+
+  let html = '';
+  klasses.forEach(klass => {
+    const machines = (groups[klass] || []).filter(m => matchesSearchMachine(m));
+    if (!machines.length) return;
+
+    const allTasks = machines.flatMap(m => m.tasks);
+    const total = allTasks.length;
+    const done = allTasks.filter(t => isChecked(t)).length;
+    const grpId = 'mg-' + klass;
+
+    html += '<div class="group" id="' + grpId + '">';
+    html += '<div class="group-header" tabindex="0" onclick="toggleGroup(\'' + grpId + '\')" onkeydown="if(event.key===\'Enter\')toggleGroup(\'' + grpId + '\')">';
+    html += chevronSvg();
+    html += '<span class="group-title">' + esc(klass) + 's</span>';
+    html += '<span class="group-count" data-gcount="' + grpId + '">' + done + '/' + total + '</span>';
+    html += '<div class="group-progress"><div class="group-progress-fill" data-gfill="' + grpId + '" style="width:' + (total ? (done/total*100) : 0) + '%"></div></div>';
+    html += '<div class="group-actions">';
+    html += '<button class="group-action" onclick="event.stopPropagation();checkMachineGroup(\'' + grpId + '\',true)">All</button>';
+    html += '<button class="group-action" onclick="event.stopPropagation();checkMachineGroup(\'' + grpId + '\',false)">None</button>';
+    html += '</div></div>';
+    html += '<div class="group-body" data-gbody="' + grpId + '">';
+
+    machines.forEach(m => {
+      const mTasks = m.tasks;
+      const mDone = mTasks.filter(t => isChecked(t)).length;
+      const mAll = mTasks.length;
+      const mGrpId = 'msub-' + m.ip.replace(/\./g, '_');
+      const label = m.name ? m.name + ' (' + m.ip + ')' : m.ip;
+
+      html += '<div class="group collapsed" id="' + mGrpId + '" style="margin:4px 8px;box-shadow:none">';
+      html += '<div class="group-header" tabindex="0" onclick="toggleMachineGroup(\'' + mGrpId + '\',\'' + esc(m.ip) + '\')" onkeydown="if(event.key===\'Enter\')toggleMachineGroup(\'' + mGrpId + '\',\'' + esc(m.ip) + '\')" style="padding:6px 10px">';
+      html += chevronSvg();
+      html += '<span class="group-title" style="font-size:12px">' + esc(label) + '</span>';
+      html += '<span class="group-count" data-gcount="' + mGrpId + '" style="font-size:10px">' + mDone + '/' + mAll + '</span>';
+      html += '<div class="group-progress" style="width:40px"><div class="group-progress-fill" data-gfill="' + mGrpId + '" style="width:' + (mAll ? (mDone/mAll*100) : 0) + '%"></div></div>';
+      html += '<div class="group-actions">';
+      html += '<button class="group-action" onclick="event.stopPropagation();checkMachine(\'' + esc(m.ip) + '\',true)">All</button>';
+      html += '<button class="group-action" onclick="event.stopPropagation();checkMachine(\'' + esc(m.ip) + '\',false)">None</button>';
+      html += '</div></div>';
+
+      html += '<div class="group-body" data-gbody="' + mGrpId + '" data-machine-ip="' + esc(m.ip) + '"></div>';
+      html += '</div>';
+    });
+
+    html += '</div></div>';
+  });
+
+  if (!html) html = '<div class="empty-state">No machines match your filter.</div>';
+  document.getElementById('machinesView').innerHTML = html;
+}
+
+function matchesSearch(iss, machine) {
+  if (!searchTerm && !filterUndone) return true;
+  if (filterUndone && iss.tasks.every(t => isChecked(t.id))) return false;
+  if (!searchTerm) return true;
+  const q = searchTerm.toLowerCase();
+  if (iss.name.toLowerCase().includes(q)) return true;
+  if (iss.pid.includes(q)) return true;
+  if (iss.family.toLowerCase().includes(q)) return true;
+  if (iss.cves.some(c => c.toLowerCase().includes(q))) return true;
+  if (iss.tasks.some(t => t.host.includes(q))) return true;
+  if (iss.tasks.some(t => {
+    const m = DATA.machines.find(mm => mm.ip === t.host);
+    return m && m.name && m.name.toLowerCase().includes(q);
+  })) return true;
+  return false;
+}
+function matchesSearchMachine(m) {
+  if (filterUndone && m.tasks.every(t => isChecked(t))) return false;
+  if (!searchTerm) return true;
+  const q = searchTerm.toLowerCase();
+  if (m.ip.includes(q)) return true;
+  if (m.name && m.name.toLowerCase().includes(q)) return true;
+  if (m.os.toLowerCase().includes(q)) return true;
+  if (m.subnet.includes(q)) return true;
+  if (m.tasks.some(tid => {
+    const pid = tid.split('::')[0];
+    const iss = DATA.issues.find(i => i.pid === pid);
+    return iss && iss.name.toLowerCase().includes(q);
+  })) return true;
+  return false;
+}
+
+function toggleTask(tid, val) {
+  setChecked(tid, val);
+  refreshAll();
+}
+function toggleIssue(pid, val) {
+  const iss = DATA.issues.find(i => i.pid === pid);
+  if (!iss) return;
+  iss.tasks.forEach(t => setChecked(t.id, val));
+  refreshAll();
+}
+function checkGroup(grpId, val) {
+  const issues = WORKSTREAM_MAP[grpId];
+  if (issues) issues.forEach(iss => iss.tasks.forEach(t => setChecked(t.id, val)));
+  refreshAll();
+}
+function checkMachineGroup(grpId, val) {
+  const klass = grpId.replace('mg-', '');
+  DATA.machines.forEach(m => {
+    if (m.klass === klass) m.tasks.forEach(t => setChecked(t, val));
+  });
+  refreshAll();
+}
+function checkMachine(ip, val) {
+  const m = DATA.machines.find(mm => mm.ip === ip);
+  if (m) m.tasks.forEach(t => setChecked(t, val));
+  refreshAll();
+}
+
+function toggleGroup(grpId) {
+  document.getElementById(grpId)?.classList.toggle('collapsed');
+}
+function toggleMachineGroup(grpId, ip) {
+  const el = document.getElementById(grpId);
+  if (!el) return;
+  const wasCollapsed = el.classList.contains('collapsed');
+  el.classList.toggle('collapsed');
+  if (wasCollapsed) {
+    const body = el.querySelector('[data-gbody]');
+    if (body && !body.dataset.rendered) {
+      body.dataset.rendered = '1';
+      renderMachineBody(body, ip);
+    }
+  }
+}
+function renderMachineBody(body, ip) {
+  const m = DATA.machines.find(mm => mm.ip === ip);
+  if (!m) return;
+  let html = '<div class="machine-os">' + esc(m.os) + '</div>';
+  m.tasks.forEach(tid => {
+    const [pid, host, sub] = tid.split('::');
+    const iss = DATA.issues.find(i => i.pid === pid);
+    if (!iss) return;
+    const task = iss.tasks.find(t => t.id === tid);
+    const isDone = isChecked(tid);
+    html += '<div class="machine-task">';
+    html += '<div class="issue-cb"><input type="checkbox" ' + (isDone ? 'checked' : '') +
+      ' onchange="toggleTask(\'' + tid + '\',this.checked)" style="width:14px;height:14px;accent-color:var(--check-accent)"></div>';
+    html += '<div class="sev-stripe ' + sevFromScore(iss.score) + '"></div>';
+    html += '<div style="min-width:0">';
+    html += '<div class="mt-name' + (isDone ? ' done' : '') + '" data-tid="' + tid + '">' + esc(iss.name) + '</div>';
+    if (task && task.detail) html += '<div class="mt-detail">' + esc(task.detail) + '</div>';
+    html += '</div>';
+    html += '<div class="issue-badges">';
+    html += '<span class="badge badge-score" style="font-size:9px">' + iss.score.toFixed(1) + '</span>';
+    if (iss.kev) html += '<span class="badge badge-kev" style="font-size:9px">KEV</span>';
+    html += '</div></div>';
+  });
+  body.innerHTML = html;
+}
+function toggleDetail(detId) {
+  const pid = detId.replace('det-', '');
+  if (openDetails.has(pid)) openDetails.delete(pid); else openDetails.add(pid);
+  document.getElementById(detId)?.classList.toggle('open');
+}
+function toggleHosts(pid) {
+  if (openHostPanels.has(pid)) openHostPanels.delete(pid); else openHostPanels.add(pid);
+  refreshAll();
+}
+
+function switchView(view) {
+  activeView = view;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.view === view));
+  document.querySelectorAll('.view-panel').forEach(p => p.classList.toggle('active', p.id === view + 'View'));
+}
+
+function toggleUndoneFilter() {
+  filterUndone = !filterUndone;
+  document.getElementById('filterUndone').classList.toggle('active', filterUndone);
+  refreshAll();
+}
+
+function updateGlobalProgress() {
+  const total = ALL_TASK_IDS.size;
+  let done = 0;
+  ALL_TASK_IDS.forEach(id => { if (isChecked(id)) done++; });
+  const pct = total ? (done / total * 100) : 0;
+  document.getElementById('globalFill').style.width = pct + '%';
+  document.getElementById('globalLabel').textContent = done + ' / ' + total + ' (' + Math.round(pct) + '%)';
+}
+
+function updateHeaderMeta() {
+  const m = DATA.meta;
+  const issueCount = DATA.issues.length;
+  const machineCount = DATA.machines.length;
+  const taskCount = DATA.issues.reduce((sum, iss) => sum + iss.tasks.length, 0);
+  document.getElementById('headerTitle').textContent = SCAN_NAME + ' Remediation Tracker';
+  document.title = SCAN_NAME + ' Remediation Tracker';
+  document.getElementById('headerMeta').innerHTML =
+    '<span>Scan: ' + esc(m.scan_date) + '</span>' +
+    '<span>' + issueCount + ' issues</span>' +
+    '<span>' + machineCount + ' machines</span>' +
+    '<span>' + taskCount + ' tasks</span>';
+}
+
+function refreshAll() {
+  if (!DATA) return;
+  renderIssues();
+  renderMachines();
+  updateGlobalProgress();
+}
+
+// --- Startup ---
+document.getElementById('fileInput').addEventListener('change', handleFileLoad);
+
+let searchTimeout;
+document.getElementById('searchInput').addEventListener('input', function() {
+  clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(() => {
+    searchTerm = this.value.trim();
+    if (DATA) refreshAll();
+  }, 200);
+});
+
+const session = loadSession();
+if (session) {
+  try {
+    const clean = sanitizeData(session.data);
+    const cleanChecked = session.checked ? sanitizeChecked(session.checked) : null;
+    initWithData(clean, cleanChecked);
+  } catch(e) {
+    localStorage.removeItem(SESSION_KEY);
+    showStartupModal();
+  }
+} else {
+  showStartupModal();
+}
+
+function toggleSettingsModal() {
+  var m = document.getElementById('settingsModal');
+  m.classList.toggle('hidden');
+  if (!m.classList.contains('hidden')) syncThemePills();
+}
+function closeSettingsModal() {
+  document.getElementById('settingsModal').classList.add('hidden');
+}
+function syncThemePills() {
+  var current = document.documentElement.getAttribute('data-theme') || 'system';
+  document.querySelectorAll('.theme-pill').forEach(function(b) {
+    b.classList.toggle('active', b.getAttribute('data-theme-val') === current);
+  });
+}
+function setTheme(val) {
+  if (val === 'system') {
+    document.documentElement.removeAttribute('data-theme');
+  } else {
+    document.documentElement.setAttribute('data-theme', val);
+  }
+  try { localStorage.setItem('secureit-rem-theme', val); } catch(e) {}
+  syncThemePills();
+}
+(function() {
+  try {
+    var saved = localStorage.getItem('secureit-rem-theme');
+    if (saved === 'light' || saved === 'dark') {
+      document.documentElement.setAttribute('data-theme', saved);
+    }
+  } catch(e) {}
+})();
+</script>
