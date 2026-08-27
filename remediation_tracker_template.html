@@ -168,6 +168,13 @@ body {
 .tab-btn:hover { color: var(--navy); }
 .tab-btn.active { color: var(--navy); border-bottom-color: var(--gold); }
 .tab-btn:focus-visible { outline: 2px solid var(--gold); outline-offset: -2px; }
+.sort-btn {
+  padding: 6px 10px; font-size: 11px; font-weight: 600;
+  color: var(--gray-mid); background: none; border: 1px solid var(--border);
+  border-radius: 3px; cursor: pointer; align-self: center; white-space: nowrap;
+  letter-spacing: 0.02em; margin-left: 8px;
+}
+.sort-btn:hover { border-color: var(--navy); color: var(--navy); }
 .toggle-completed {
   margin-left: auto; padding: 6px 12px; font-size: 11px; font-weight: 600;
   color: var(--gray-mid); background: none; border: 1px solid var(--border);
@@ -359,6 +366,11 @@ body {
   padding: 2px 0 6px 22px; word-break: break-all; line-height: 1.4;
   border-bottom: 1px solid var(--border-subtle);
 }
+.detail-hdr { font-weight: 700; margin-top: 6px; color: var(--gray-mid); }
+.detail-hdr:first-child { margin-top: 0; }
+.detail-line { margin: 1px 0; word-break: break-word; }
+.detail-indent { padding-left: 12px; }
+.detail-sep { border: none; border-top: 1px solid var(--border-subtle); margin: 4px 0; }
 .detail-label { font-weight: 700; color: var(--navy); text-transform: uppercase;
   letter-spacing: 0.04em; font-size: 10px; margin-top: 8px; }
 .detail-label:first-child { margin-top: 0; }
@@ -525,6 +537,7 @@ body {
       <button class="undo-btn disabled" id="redoBtn" onclick="performRedo()" aria-label="Redo" title="Redo"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 7v6h-6"/><path d="M21 13a9 9 0 0 0-15.36-6.36L3 9"/></svg></button>
       <button class="tab-btn active" data-view="issues" onclick="switchView('issues')">Issues</button>
       <button class="tab-btn" data-view="machines" onclick="switchView('machines')">Machines</button>
+      <button class="sort-btn" id="sortBtn" onclick="toggleSortMode()" title="Sort hosts by name or IP">A-Z</button>
       <button class="toggle-completed" id="toggleCompleted" onclick="toggleShowCompleted()">Show Completed</button>
     </div>
     <div class="search-bar">
@@ -582,7 +595,7 @@ body {
         <button class="theme-pill active" data-theme-val="system" onclick="setTheme('system')">System</button>
       </div>
     </div>
-    <div style="text-align:center;padding:12px 0 0;font-size:10px;color:var(--gray-mid);letter-spacing:0.03em">Remediation Tracker v<span id="versionLabel">0.91</span></div>
+    <div style="text-align:center;padding:12px 0 0;font-size:10px;color:var(--gray-mid);letter-spacing:0.03em">Remediation Tracker v<span id="versionLabel">0.91.9</span></div>
     <div style="text-align:center;padding:4px 0 0;font-size:10px;color:var(--gray-mid);letter-spacing:0.03em">Compatible Data Schemas: <span id="schemaLabel"></span></div>
     <div class="modal-actions" style="margin-top:16px">
       <button class="modal-btn modal-btn-primary" onclick="closeSettingsModal()">Done</button>
@@ -605,7 +618,7 @@ body {
 </div>
 
 <script>
-const TRACKER_VERSION = '0.91';
+const TRACKER_VERSION = '0.91.9';
 const COMPATIBLE_SCHEMA_VERSIONS = [200];
 const DATA_SCHEMA_VERSION = 200;
 
@@ -626,7 +639,7 @@ const INITIAL_DATA = {
       "pid": "97041",
       "name": "SSL Certificate Cannot Be Trusted",
       "family": "General",
-      "score": 9.2,
+      "score": 8.5,
       "src": "VPR",
       "sev": 3,
       "kev": false,
@@ -1087,6 +1100,8 @@ const INITIAL_DATA = {
   ]
 };
 
+const PRE_CHECKED = [];
+
 /* ====================================================================== */
 
 const SESSION_KEY = 'secureit-rem-session';
@@ -1110,6 +1125,47 @@ let _skipRecord = false;
 let pendingLoadData = null;
 const openDetails = new Set();
 const openHostPanels = new Set();
+const openMachineGroups = new Set();
+var sortMode = 'name';
+
+function compareIPs(a, b) {
+  var pa = (a || '').split('.').map(Number);
+  var pb = (b || '').split('.').map(Number);
+  for (var i = 0; i < 4; i++) {
+    if ((pa[i] || 0) !== (pb[i] || 0)) return (pa[i] || 0) - (pb[i] || 0);
+  }
+  return 0;
+}
+
+function sortedTasks(tasks) {
+  var sorted = tasks.slice();
+  sorted.sort(function(a, b) {
+    var ma = DATA.machines.find(function(mm) { return mm.slug === a.machine; });
+    var mb = DATA.machines.find(function(mm) { return mm.slug === b.machine; });
+    if (sortMode === 'ip') {
+      return compareIPs(ma ? ma.ips[0] : '', mb ? mb.ips[0] : '');
+    }
+    var nameA = (ma && ma.name) ? ma.name.toLowerCase() : '';
+    var nameB = (mb && mb.name) ? mb.name.toLowerCase() : '';
+    return nameA.localeCompare(nameB);
+  });
+  return sorted;
+}
+
+function sortMachines(machines) {
+  var sorted = machines.slice();
+  sorted.sort(function(a, b) {
+    if (sortMode === 'ip') return compareIPs(a.ips[0] || '', b.ips[0] || '');
+    return (a.name || '').toLowerCase().localeCompare((b.name || '').toLowerCase());
+  });
+  return sorted;
+}
+
+function toggleSortMode() {
+  sortMode = sortMode === 'name' ? 'ip' : 'name';
+  document.getElementById('sortBtn').textContent = sortMode === 'name' ? 'A-Z' : 'IP';
+  refreshAll();
+}
 
 // --- Sanitization ---
 function sanitizeString(s) {
@@ -1370,7 +1426,8 @@ function saveToFile() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = SCAN_NAME.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-remediation.json';
+  var d = new Date(), ds = '' + d.getFullYear() + ('0'+(d.getMonth()+1)).slice(-2) + ('0'+d.getDate()).slice(-2);
+  a.download = SCAN_NAME.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-remediation-' + ds + '.json';
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -1416,8 +1473,13 @@ function handleFileLoad(event) {
 function loadInitialData() {
   try {
     const clean = sanitizeData(INITIAL_DATA);
+    var preState = null;
+    if (PRE_CHECKED && PRE_CHECKED.length) {
+      preState = {};
+      PRE_CHECKED.forEach(function(id) { preState[id] = 1; });
+    }
     document.getElementById('startupModal').classList.add('hidden');
-    initWithData(clean, null);
+    initWithData(clean, preState);
     saveSession();
   } catch(err) {
     alert('Initial data failed validation: ' + err.message);
@@ -1498,6 +1560,38 @@ function initWithData(data, checkedState, fpState, notesState) {
 function esc(s) {
   const d = document.createElement('div'); d.textContent = s; return d.innerHTML;
 }
+function formatDetail(s) {
+  if (!s) return '';
+  var parts = s.split(' | ');
+  if (parts.length <= 1) return esc(s);
+  var merged = [];
+  for (var i = 0; i < parts.length; i++) {
+    var p = parts[i].trim();
+    if (!p) continue;
+    if (/^- /.test(p) && p.charAt(p.length - 1) === '\\' && i + 1 < parts.length) {
+      merged.push(p + parts[++i].trim());
+    } else if (/^CVE-\d{4}-/.test(p)) {
+      var cves = [p];
+      while (i + 1 < parts.length && /^CVE-\d{4}-/.test(parts[i + 1].trim())) { i++; cves.push(parts[i].trim()); }
+      merged.push(cves.join(' '));
+    } else {
+      merged.push(p);
+    }
+  }
+  var html = '';
+  for (var j = 0; j < merged.length; j++) {
+    var m = merged[j];
+    if (/^-{4,}$/.test(m)) { html += '<hr class="detail-sep">'; continue; }
+    if (/^(Current Settings|Recommended Settings \d+|CVEs? Covered|Note):?/i.test(m) || (m.length < 60 && m.charAt(m.length - 1) === ':')) {
+      html += '<div class="detail-hdr">' + esc(m) + '</div>';
+    } else if (/^- /.test(m) || /^\d+\.\s/.test(m)) {
+      html += '<div class="detail-line detail-indent">' + esc(m) + '</div>';
+    } else {
+      html += '<div class="detail-line">' + esc(m) + '</div>';
+    }
+  }
+  return html;
+}
 function sevClass(effort) {
   if (effort === 'Low') return 'low';
   if (effort === 'Medium') return 'med';
@@ -1562,10 +1656,41 @@ function renderIssues() {
       html += '<div class="sev-stripe ' + sevFromScore(iss.score) + '"></div>';
       html += '<div class="issue-info">';
       html += '<div class="issue-name' + (issDone ? ' done' : (issAllFP ? ' fp' : '')) + '" data-iname="' + iss.pid + '">' + esc(iss.name) + (issAllFP ? '<span class="fp-tag">FP</span>' : '') + '</div>';
+      var hostMap = {};
+      iss.tasks.forEach(function(t) {
+        if (!hostMap[t.machine]) hostMap[t.machine] = { total: 0, done: 0, fp: 0 };
+        hostMap[t.machine].total++;
+        if (isChecked(t.id)) hostMap[t.machine].done++;
+        else if (isFP(t.id)) hostMap[t.machine].fp++;
+      });
+      var uniqueHosts = Object.keys(hostMap).length;
+      var resolvedHosts = 0, fpHosts = 0;
+      Object.keys(hostMap).forEach(function(m) {
+        var h = hostMap[m];
+        if (h.done + h.fp === h.total) {
+          resolvedHosts++;
+          if (h.fp === h.total) fpHosts++;
+        }
+      });
+      var remainingHosts = uniqueHosts - resolvedHosts;
+      var hostLabel = resolvedHosts > 0
+        ? remainingHosts + ' / ' + uniqueHosts + ' host' + (uniqueHosts !== 1 ? 's' : '')
+        : uniqueHosts + ' host' + (uniqueHosts !== 1 ? 's' : '');
       html += '<div class="issue-sub">';
-      html += '<span>' + iss.tasks.length + ' host' + (iss.tasks.length !== 1 ? 's' : '') + '</span>';
+      html += '<span>' + hostLabel + '</span>';
       html += '<span>' + esc(iss.family) + '</span>';
-      if (iss.estimate) html += '<span>' + esc(iss.estimate) + '</span>';
+      if (iss.estimate) {
+        var estText = iss.estimate;
+        if (resolvedHosts > 0 && remainingHosts > 0) {
+          var frac = remainingHosts / uniqueHosts;
+          estText = '~' + iss.estimate.replace(/(\d+(?:\.\d+)?)/g, function(n) {
+            var s = Math.ceil(parseFloat(n) * frac); return s < 1 ? 1 : s;
+          });
+        } else if (remainingHosts === 0) {
+          estText = null;
+        }
+        if (estText) html += '<span>' + esc(estText) + '</span>';
+      }
       html += '</div></div>';
       html += '<div class="issue-badges">';
       html += '<span class="badge badge-score">' + iss.score.toFixed(1) + ' ' + iss.src + '</span>';
@@ -1573,20 +1698,16 @@ function renderIssues() {
       if (iss.exploit) html += '<span class="badge badge-exploit">Exploit</span>';
       html += '<span class="badge badge-effort-' + sevClass(iss.effort) + '">Effort: ' + iss.effort + '</span>';
       html += '</div></div>';
-
       const hostsId = 'hosts-' + iss.pid;
-      const doneTasks = iss.tasks.filter(t => isChecked(t.id)).length;
-      const fpHostCount = iss.tasks.filter(t => isFP(t.id)).length;
-      const resolvedTasks = doneTasks + fpHostCount;
       const isHostsOpen = openHostPanels.has(iss.pid);
       html += '<div class="hosts-toggle' + (isHostsOpen ? ' open' : '') + '" tabindex="0" onclick="toggleHosts(\'' + iss.pid + '\')" onkeydown="if(event.key===\'Enter\')toggleHosts(\'' + iss.pid + '\')">';
       html += '<span class="ht-chevron">&#9654;</span> ';
-      html += resolvedTasks + ' / ' + iss.tasks.length + ' host' + (iss.tasks.length !== 1 ? 's' : '') + ' resolved';
-      if (fpHostCount > 0) html += ' · ' + fpHostCount + ' FP';
+      html += resolvedHosts + ' / ' + uniqueHosts + ' host' + (uniqueHosts !== 1 ? 's' : '') + ' resolved';
+      if (fpHosts > 0) html += ' · ' + fpHosts + ' FP';
       html += '</div>';
 
       html += '<div class="hosts-panel' + (isHostsOpen ? ' open' : '') + '" id="' + hostsId + '">';
-      iss.tasks.forEach(t => {
+      sortedTasks(iss.tasks).forEach(t => {
         const m = DATA.machines.find(mm => mm.slug === t.machine);
         const hostName = m && m.name ? m.name : '';
         const isDone = isChecked(t.id);
@@ -1604,7 +1725,7 @@ function renderIssues() {
         html += '<button class="fp-btn' + (taskFP ? ' active' : '') + '" onclick="event.stopPropagation();toggleFP(\'' + t.id + '\')">False Positive</button>';
         html += '</div>';
         if (t.detail) {
-          html += '<div class="host-row-output">' + esc(t.detail) + '</div>';
+          html += '<div class="host-row-output">' + formatDetail(t.detail) + '</div>';
         }
         html += '<textarea class="rem-notes" maxlength="256" rows="2" placeholder="Remediation notes…" data-tid="' + t.id + '" oninput="saveNote(\'' + t.id + '\',this.value)" onfocus="noteOnFocus(\'' + t.id + '\',this.value)" onblur="noteOnBlur(\'' + t.id + '\',this.value)">' + esc(remNotes[t.id] || '') + '</textarea>';
       });
@@ -1612,7 +1733,7 @@ function renderIssues() {
 
       html += '<div class="issue-detail' + (openDetails.has(iss.pid) ? ' open' : '') + '" id="' + detailId + '">';
       html += '<div class="detail-label">Remediation</div>';
-      html += '<div class="detail-text">' + esc(iss.remediation || iss.nessus_solution) + '</div>';
+      html += '<div class="detail-text">' + formatDetail(iss.remediation || iss.nessus_solution) + '</div>';
       if (iss.caveat) {
         html += '<div class="detail-caveat">' + esc(iss.caveat) + '</div>';
       }
@@ -1643,7 +1764,7 @@ function renderMachines() {
 
   let html = '';
   klasses.forEach(klass => {
-    const machines = (groups[klass] || []).filter(m => matchesSearchMachine(m));
+    const machines = sortMachines((groups[klass] || []).filter(m => matchesSearchMachine(m)));
     if (!machines.length) return;
 
     const allTasks = machines.flatMap(m => m.tasks);
@@ -1675,7 +1796,8 @@ function renderMachines() {
       const ipStr = m.ips.join(', ');
       const label = m.name ? m.name + ' (' + ipStr + ')' : ipStr;
 
-      html += '<div class="group collapsed" id="' + mGrpId + '" style="margin:4px 8px;box-shadow:none">';
+      var mOpen = openMachineGroups.has(m.slug);
+      html += '<div class="group' + (mOpen ? '' : ' collapsed') + '" id="' + mGrpId + '" style="margin:4px 8px;box-shadow:none">';
       html += '<div class="group-header" tabindex="0" onclick="toggleMachineGroup(\'' + mGrpId + '\',\'' + esc(m.slug) + '\')" onkeydown="if(event.key===\'Enter\')toggleMachineGroup(\'' + mGrpId + '\',\'' + esc(m.slug) + '\')" style="padding:6px 10px">';
       html += chevronSvg();
       html += '<span class="group-title" style="font-size:12px">' + esc(label) + '</span>';
@@ -1695,6 +1817,10 @@ function renderMachines() {
 
   if (!html) html = '<div class="empty-state">No machines match your filter.</div>';
   document.getElementById('machinesView').innerHTML = html;
+  openMachineGroups.forEach(function(slug) {
+    var body = document.querySelector('[data-gbody="msub-' + slug + '"]');
+    if (body) { body.dataset.rendered = '1'; renderMachineBody(body, slug); }
+  });
 }
 
 function matchesSearch(iss, machine) {
@@ -1799,6 +1925,7 @@ function toggleMachineGroup(grpId, slug) {
   if (!el) return;
   const wasCollapsed = el.classList.contains('collapsed');
   el.classList.toggle('collapsed');
+  if (wasCollapsed) { openMachineGroups.add(slug); } else { openMachineGroups.delete(slug); }
   if (wasCollapsed) {
     const body = el.querySelector('[data-gbody]');
     if (body && !body.dataset.rendered) {
@@ -1825,7 +1952,7 @@ function renderMachineBody(body, slug) {
     html += '<div class="sev-stripe ' + sevFromScore(iss.score) + '"></div>';
     html += '<div style="min-width:0">';
     html += '<div class="mt-name' + (isDone ? ' done' : (taskFP ? ' fp' : '')) + '" data-tid="' + tid + '" onclick="navToIssue(\'' + esc(iss.slug) + '\',\'' + esc(slug) + '\')">' + esc(iss.name) + (taskFP ? '<span class="fp-tag">FP</span>' : '') + '</div>';
-    if (task && task.detail) html += '<div class="mt-detail">' + esc(task.detail) + '</div>';
+    if (task && task.detail) html += '<div class="mt-detail">' + formatDetail(task.detail) + '</div>';
     html += '</div>';
     html += '<div class="issue-badges">';
     html += '<button class="fp-btn' + (taskFP ? ' active' : '') + '" onclick="event.stopPropagation();toggleFP(\'' + tid + '\')" style="margin-right:4px">FP</button>';
@@ -2103,7 +2230,7 @@ if (session) {
     const clean = sanitizeData(session.data);
     const cleanChecked = session.checked ? sanitizeChecked(session.checked) : null;
     const cleanFP = session.fpTasks ? sanitizeChecked(session.fpTasks) : null;
-    initWithData(clean, cleanChecked, cleanFP, sess.remNotes || null);
+    initWithData(clean, cleanChecked, cleanFP, session.remNotes || null);
   } catch(e) {
     localStorage.removeItem(SESSION_KEY);
     showStartupModal();

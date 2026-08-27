@@ -116,6 +116,8 @@ Filter and sort the parsed plugins to surface the most impactful issues. The rec
 2. **Sort** by affected host count descending (widest blast radius first)
 3. **Then sort** by remediation effort ascending (most achievable first)
 
+Before sorting, apply all finding massage rules from `LLM-FindingMassage.md`: score overrides (e.g. SSL Certificate Cannot Be Trusted capped at 8.5) and plugin merges (e.g. .NET Core + ASP.NET Core merged into one issue with one task per host).
+
 These defaults work well for a solo operator prioritizing quick wins across a large environment. Adjust freely based on the engagement: a smaller network might use a lower threshold, a compliance driven scan might filter by specific plugin families, or a team with more capacity might skip the effort sort and tackle everything above threshold.
 
 ```python
@@ -156,11 +158,7 @@ From the sorted list, pick the top N most achievable remediation items. "Achieva
 
 ### Consolidate version related findings
 
-When multiple findings target the same path, service, or daemon and differ only in version thresholds, the remediation is a single upgrade to the highest version required to close all of them simultaneously. Do not create separate remediation tasks that each upgrade to a different version of the same thing.
-
-For example, if three plugins fire on the same host for OpenSSL < 1.1.1w, OpenSSL < 3.0.12, and OpenSSL < 3.1.4, and the installed binary is the same OpenSSL instance, the remediation is one upgrade to >= 3.1.4 (or the latest stable in that branch). Write the remediation text to name the highest required version and list the CVEs from all consolidated findings.
-
-When the findings clearly target the same component (same path in plugin output, same service port, same daemon), consolidate without asking. When it is ambiguous (e.g., the same library appears at different paths suggesting separate installations), ask the user before merging.
+Apply the version consolidation rules from `LLM-FindingMassage.md`. Multiple findings on the same path, service, or daemon that differ only in version thresholds become one task targeting the highest required version.
 
 Assign each selected issue:
 - `workstream` (string)

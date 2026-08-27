@@ -111,6 +111,10 @@ Done and False Positive are mutually exclusive. Setting one clears the other. Bo
 
 FP state is persisted in localStorage alongside done state and included in save/load JSON files as `fpTasks`.
 
+## Finding Massage Rules
+
+Score overrides, plugin merges, and other transformations applied during DATA payload generation are defined in `LLM-FindingMassage.md`. Apply all rules in that file before sorting issues and building the final payload.
+
 ## Human Written Fields
 
 The following fields are not extracted mechanically from the .nessus file and require analyst judgment:
