@@ -141,12 +141,13 @@ body {
   display: flex; gap: 0; margin: 0 24px; border-bottom: 1px solid var(--border); align-items: stretch;
 }
 .nav-back {
-  display: none; align-items: center; justify-content: center; width: 32px;
+  display: flex; align-items: center; justify-content: center; width: 32px;
   background: none; border: none; cursor: pointer; color: var(--gray-mid);
   padding: 0; margin-right: 4px; border-bottom: 3px solid transparent; flex-shrink: 0;
+  visibility: hidden;
 }
 .nav-back:hover { color: var(--navy); }
-.nav-back.visible { display: flex; }
+.nav-back.visible { visibility: visible; }
 .nav-back svg { width: 16px; height: 16px; }
 .tab-btn {
   padding: 12px 24px; font-size: 13px; font-weight: 700; letter-spacing: 0.04em;
