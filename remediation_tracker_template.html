@@ -520,7 +520,10 @@ const INITIAL_DATA = {
       "maturity": "",
       "epss": 0.02,
       "cves": [],
-      "ports": ["443/tcp", "8443/tcp"],
+      "ports": [
+        "443/tcp",
+        "8443/tcp"
+      ],
       "workstream": "Certificate management",
       "effort": "Low",
       "estimate": "1 to 2 hours",
@@ -528,10 +531,23 @@ const INITIAL_DATA = {
       "caveat": "",
       "nessus_solution": "Purchase or generate a proper TLS/SSL certificate for this service.",
       "tasks": [
-        {"id": "97041::10.0.1.10::0", "host": "10.0.1.10", "detail": "Self-signed certificate on port 443/tcp, expired 2026-06-01."},
-        {"id": "97041::10.0.1.20::0", "host": "10.0.1.20", "detail": "Self-signed certificate on port 8443/tcp."},
-        {"id": "97041::10.0.1.30::0", "host": "10.0.1.30", "detail": "Expired certificate, issuer CN=InternalCA, not after 2026-03-15."}
-      ]
+        {
+          "id": "issue_SslCr7mK::host_Wp01xK7m::0",
+          "detail": "Self-signed certificate on port 443/tcp, expired 2026-06-01.",
+          "machine": "host_Wp01xK7m"
+        },
+        {
+          "id": "issue_SslCr7mK::host_Dk01rT9n::0",
+          "detail": "Self-signed certificate on port 8443/tcp.",
+          "machine": "host_Dk01rT9n"
+        },
+        {
+          "id": "issue_SslCr7mK::host_Dc01vQ3p::0",
+          "detail": "Expired certificate, issuer CN=InternalCA, not after 2026-03-15.",
+          "machine": "host_Dc01vQ3p"
+        }
+      ],
+      "slug": "issue_SslCr7mK"
     },
     {
       "pid": "156032",
@@ -545,8 +561,14 @@ const INITIAL_DATA = {
       "exploit": true,
       "maturity": "Functional",
       "epss": 0.68,
-      "cves": ["CVE-2026-31311", "CVE-2026-31312"],
-      "ports": ["80/tcp", "443/tcp"],
+      "cves": [
+        "CVE-2026-31311",
+        "CVE-2026-31312"
+      ],
+      "ports": [
+        "80/tcp",
+        "443/tcp"
+      ],
       "workstream": "Web server patching",
       "effort": "Medium",
       "estimate": "4 to 6 hours",
@@ -554,9 +576,18 @@ const INITIAL_DATA = {
       "caveat": "Coordinate with application owners before restarting web services during business hours.",
       "nessus_solution": "Upgrade to Apache version 2.4.60 or later.",
       "tasks": [
-        {"id": "156032::10.0.1.10::0", "host": "10.0.1.10", "detail": "Apache/2.4.51 detected on port 80/tcp."},
-        {"id": "156032::10.0.1.40::0", "host": "10.0.1.40", "detail": "Apache/2.4.49 detected on port 443/tcp."}
-      ]
+        {
+          "id": "issue_Apch9nTr::host_Wp01xK7m::0",
+          "detail": "Apache/2.4.51 detected on port 80/tcp.",
+          "machine": "host_Wp01xK7m"
+        },
+        {
+          "id": "issue_Apch9nTr::host_As01bN5j::0",
+          "detail": "Apache/2.4.49 detected on port 443/tcp.",
+          "machine": "host_As01bN5j"
+        }
+      ],
+      "slug": "issue_Apch9nTr"
     },
     {
       "pid": "170204",
@@ -570,8 +601,12 @@ const INITIAL_DATA = {
       "exploit": true,
       "maturity": "High",
       "epss": 0.91,
-      "cves": ["CVE-2024-6387"],
-      "ports": ["22/tcp"],
+      "cves": [
+        "CVE-2024-6387"
+      ],
+      "ports": [
+        "22/tcp"
+      ],
       "workstream": "OS patching",
       "effort": "Low",
       "estimate": "2 to 3 hours",
@@ -579,11 +614,28 @@ const INITIAL_DATA = {
       "caveat": "LoginGraceTime=0 can cause connection issues under high concurrency. Prefer the patch.",
       "nessus_solution": "Upgrade to OpenSSH 9.8 or later.",
       "tasks": [
-        {"id": "170204::10.0.1.10::0", "host": "10.0.1.10", "detail": "OpenSSH 8.9p1 detected."},
-        {"id": "170204::10.0.1.20::0", "host": "10.0.1.20", "detail": "OpenSSH 9.3p1 detected."},
-        {"id": "170204::10.0.1.40::0", "host": "10.0.1.40", "detail": "OpenSSH 8.2p1 detected."},
-        {"id": "170204::10.0.1.50::0", "host": "10.0.1.50", "detail": "OpenSSH 7.6p1 detected."}
-      ]
+        {
+          "id": "issue_OpSh3pQv::host_Wp01xK7m::0",
+          "detail": "OpenSSH 8.9p1 detected.",
+          "machine": "host_Wp01xK7m"
+        },
+        {
+          "id": "issue_OpSh3pQv::host_Dk01rT9n::0",
+          "detail": "OpenSSH 9.3p1 detected.",
+          "machine": "host_Dk01rT9n"
+        },
+        {
+          "id": "issue_OpSh3pQv::host_As01bN5j::0",
+          "detail": "OpenSSH 8.2p1 detected.",
+          "machine": "host_As01bN5j"
+        },
+        {
+          "id": "issue_OpSh3pQv::host_Ad01cF8w::0",
+          "detail": "OpenSSH 7.6p1 detected.",
+          "machine": "host_Ad01cF8w"
+        }
+      ],
+      "slug": "issue_OpSh3pQv"
     },
     {
       "pid": "63145",
@@ -598,7 +650,9 @@ const INITIAL_DATA = {
       "maturity": "Functional",
       "epss": 0.12,
       "cves": [],
-      "ports": ["445/tcp"],
+      "ports": [
+        "445/tcp"
+      ],
       "workstream": "Windows hardening",
       "effort": "Low",
       "estimate": "1 to 2 hours",
@@ -606,9 +660,18 @@ const INITIAL_DATA = {
       "caveat": "Legacy devices or printers that cannot negotiate signed SMB may lose connectivity.",
       "nessus_solution": "Enforce message signing in the host's configuration.",
       "tasks": [
-        {"id": "63145::10.0.1.30::0", "host": "10.0.1.30", "detail": "SMB signing is not required on port 445/tcp."},
-        {"id": "63145::10.0.1.50::0", "host": "10.0.1.50", "detail": "SMB signing is not required on port 445/tcp."}
-      ]
+        {
+          "id": "issue_SmbS5jBn::host_Dc01vQ3p::0",
+          "detail": "SMB signing is not required on port 445/tcp.",
+          "machine": "host_Dc01vQ3p"
+        },
+        {
+          "id": "issue_SmbS5jBn::host_Ad01cF8w::0",
+          "detail": "SMB signing is not required on port 445/tcp.",
+          "machine": "host_Ad01cF8w"
+        }
+      ],
+      "slug": "issue_SmbS5jBn"
     },
     {
       "pid": "110385",
@@ -623,17 +686,28 @@ const INITIAL_DATA = {
       "maturity": "",
       "epss": 0.04,
       "cves": [],
-      "ports": ["445/tcp"],
+      "ports": [
+        "445/tcp"
+      ],
       "workstream": "Windows hardening",
       "effort": "Medium",
       "estimate": "3 to 5 hours",
-      "remediation": "Add double quotes around the service binary path in the Windows registry for each affected service. HKLM\\SYSTEM\\CurrentControlSet\\Services\\<ServiceName>\\ImagePath. Test each service restarts correctly after the change.",
+      "remediation": "Add double quotes around the service binary path in the Windows registry for each affected service. HKLM\SYSTEM\CurrentControlSet\Services\<ServiceName>\ImagePath. Test each service restarts correctly after the change.",
       "caveat": "Some third party installers recreate the unquoted path on update. Recheck after software updates.",
       "nessus_solution": "Ensure that any service that contains a space in the path encloses the path in double-quotes.",
       "tasks": [
-        {"id": "110385::10.0.1.30::0", "host": "10.0.1.30", "detail": "Unquoted path: C:\\Program Files\\Vendor App\\service.exe"},
-        {"id": "110385::10.0.1.50::0", "host": "10.0.1.50", "detail": "Unquoted path: C:\\Program Files\\Legacy Tool\\daemon.exe"}
-      ]
+        {
+          "id": "issue_UnqP8wCf::host_Dc01vQ3p::0",
+          "detail": "Unquoted path: C:\Program Files\Vendor App\service.exe",
+          "machine": "host_Dc01vQ3p"
+        },
+        {
+          "id": "issue_UnqP8wCf::host_Ad01cF8w::0",
+          "detail": "Unquoted path: C:\Program Files\Legacy Tool\daemon.exe",
+          "machine": "host_Ad01cF8w"
+        }
+      ],
+      "slug": "issue_UnqP8wCf"
     },
     {
       "pid": "42873",
@@ -647,8 +721,13 @@ const INITIAL_DATA = {
       "exploit": false,
       "maturity": "",
       "epss": 0.01,
-      "cves": ["CVE-2016-2183"],
-      "ports": ["443/tcp", "3389/tcp"],
+      "cves": [
+        "CVE-2016-2183"
+      ],
+      "ports": [
+        "443/tcp",
+        "3389/tcp"
+      ],
       "workstream": "Certificate management",
       "effort": "Low",
       "estimate": "1 to 2 hours",
@@ -656,9 +735,18 @@ const INITIAL_DATA = {
       "caveat": "Very old clients (IE8 on XP) may lose connectivity.",
       "nessus_solution": "Reconfigure the affected application to avoid use of medium strength ciphers.",
       "tasks": [
-        {"id": "42873::10.0.1.10::0", "host": "10.0.1.10", "detail": "3DES cipher TLS_RSA_WITH_3DES_EDE_CBC_SHA on port 443/tcp."},
-        {"id": "42873::10.0.1.30::0", "host": "10.0.1.30", "detail": "3DES cipher on port 3389/tcp (RDP)."}
-      ]
+        {
+          "id": "issue_Swt32dHx::host_Wp01xK7m::0",
+          "detail": "3DES cipher TLS_RSA_WITH_3DES_EDE_CBC_SHA on port 443/tcp.",
+          "machine": "host_Wp01xK7m"
+        },
+        {
+          "id": "issue_Swt32dHx::host_Dc01vQ3p::0",
+          "detail": "3DES cipher on port 3389/tcp (RDP).",
+          "machine": "host_Dc01vQ3p"
+        }
+      ],
+      "slug": "issue_Swt32dHx"
     },
     {
       "pid": "158901",
@@ -672,8 +760,13 @@ const INITIAL_DATA = {
       "exploit": false,
       "maturity": "",
       "epss": 0.15,
-      "cves": ["CVE-2026-28430", "CVE-2026-28431"],
-      "ports": ["80/tcp"],
+      "cves": [
+        "CVE-2026-28430",
+        "CVE-2026-28431"
+      ],
+      "ports": [
+        "80/tcp"
+      ],
       "workstream": "Web server patching",
       "effort": "Medium",
       "estimate": "3 to 4 hours",
@@ -681,8 +774,13 @@ const INITIAL_DATA = {
       "caveat": "Test in staging first. PHP minor version upgrades occasionally break deprecated function calls.",
       "nessus_solution": "Upgrade to PHP version 8.2.20 or later.",
       "tasks": [
-        {"id": "158901::10.0.1.40::0", "host": "10.0.1.40", "detail": "PHP/8.1.12 detected via X-Powered-By header."}
-      ]
+        {
+          "id": "issue_PhpV1gLs::host_As01bN5j::0",
+          "detail": "PHP/8.1.12 detected via X-Powered-By header.",
+          "machine": "host_As01bN5j"
+        }
+      ],
+      "slug": "issue_PhpV1gLs"
     },
     {
       "pid": "10092",
@@ -697,7 +795,9 @@ const INITIAL_DATA = {
       "maturity": "Functional",
       "epss": 0.34,
       "cves": [],
-      "ports": ["21/tcp"],
+      "ports": [
+        "21/tcp"
+      ],
       "workstream": "Service hardening",
       "effort": "Low",
       "estimate": "30 minutes",
@@ -705,8 +805,13 @@ const INITIAL_DATA = {
       "caveat": "Verify no automated processes depend on anonymous FTP before disabling.",
       "nessus_solution": "Disable anonymous FTP if it is not required.",
       "tasks": [
-        {"id": "10092::10.0.1.20::0", "host": "10.0.1.20", "detail": "Anonymous FTP login permitted on port 21/tcp. Writable directory detected."}
-      ]
+        {
+          "id": "issue_FtpA4kMz::host_Dk01rT9n::0",
+          "detail": "Anonymous FTP login permitted on port 21/tcp. Writable directory detected.",
+          "machine": "host_Dk01rT9n"
+        }
+      ],
+      "slug": "issue_FtpA4kMz"
     },
     {
       "pid": "166555",
@@ -720,18 +825,31 @@ const INITIAL_DATA = {
       "exploit": true,
       "maturity": "High",
       "epss": 0.45,
-      "cves": ["CVE-2013-3900"],
-      "ports": ["445/tcp"],
+      "cves": [
+        "CVE-2013-3900"
+      ],
+      "ports": [
+        "445/tcp"
+      ],
       "workstream": "Windows hardening",
       "effort": "Low",
       "estimate": "1 to 2 hours",
-      "remediation": "Deploy both registry values via Group Policy Preferences: HKLM\\Software\\Microsoft\\Cryptography\\Wintrust\\Config\\EnableCertPaddingCheck = 1 (REG_DWORD) and the same under Wow6432Node. Reboot on normal cycle.",
+      "remediation": "Deploy both registry values via Group Policy Preferences: HKLM\Software\Microsoft\Cryptography\Wintrust\Config\EnableCertPaddingCheck = 1 (REG_DWORD) and the same under Wow6432Node. Reboot on normal cycle.",
       "caveat": "Can cause validation failures for installers signed with padded signatures. Pilot on a test OU first.",
       "nessus_solution": "Add and enable registry value EnableCertPaddingCheck.",
       "tasks": [
-        {"id": "166555::10.0.1.30::0", "host": "10.0.1.30", "detail": "EnableCertPaddingCheck is not present in the registry."},
-        {"id": "166555::10.0.1.50::0", "host": "10.0.1.50", "detail": "EnableCertPaddingCheck is not present in the registry."}
-      ]
+        {
+          "id": "issue_WnVr6eRy::host_Dc01vQ3p::0",
+          "detail": "EnableCertPaddingCheck is not present in the registry.",
+          "machine": "host_Dc01vQ3p"
+        },
+        {
+          "id": "issue_WnVr6eRy::host_Ad01cF8w::0",
+          "detail": "EnableCertPaddingCheck is not present in the registry.",
+          "machine": "host_Ad01cF8w"
+        }
+      ],
+      "slug": "issue_WnVr6eRy"
     },
     {
       "pid": "153412",
@@ -746,7 +864,9 @@ const INITIAL_DATA = {
       "maturity": "Functional",
       "epss": 0.55,
       "cves": [],
-      "ports": ["2375/tcp"],
+      "ports": [
+        "2375/tcp"
+      ],
       "workstream": "Service hardening",
       "effort": "Medium",
       "estimate": "2 to 3 hours",
@@ -754,55 +874,100 @@ const INITIAL_DATA = {
       "caveat": "CI/CD pipelines or monitoring agents may use the unauthenticated API. Coordinate before changing.",
       "nessus_solution": "Enable TLS on the Docker daemon or restrict access to the Docker socket.",
       "tasks": [
-        {"id": "153412::10.0.1.20::0", "host": "10.0.1.20", "detail": "Docker API accessible without authentication on port 2375/tcp. Version 24.0.5."}
-      ]
+        {
+          "id": "issue_Dckr2hJt::host_Dk01rT9n::0",
+          "detail": "Docker API accessible without authentication on port 2375/tcp. Version 24.0.5.",
+          "machine": "host_Dk01rT9n"
+        }
+      ],
+      "slug": "issue_Dckr2hJt"
     }
   ],
   "machines": [
     {
-      "ip": "10.0.1.10",
       "name": "web-prod-01",
       "os": "Ubuntu 22.04 LTS",
       "type": "general-purpose",
       "klass": "Server",
       "subnet": "10.0.1.0/24",
-      "tasks": ["97041::10.0.1.10::0", "156032::10.0.1.10::0", "170204::10.0.1.10::0", "42873::10.0.1.10::0"]
+      "tasks": [
+        "issue_SslCr7mK::host_Wp01xK7m::0",
+        "issue_Apch9nTr::host_Wp01xK7m::0",
+        "issue_OpSh3pQv::host_Wp01xK7m::0",
+        "issue_Swt32dHx::host_Wp01xK7m::0"
+      ],
+      "slug": "host_Wp01xK7m",
+      "ips": [
+        "10.0.1.10"
+      ]
     },
     {
-      "ip": "10.0.1.20",
       "name": "dev-docker-01",
       "os": "Debian 12",
       "type": "general-purpose",
       "klass": "Server",
       "subnet": "10.0.1.0/24",
-      "tasks": ["97041::10.0.1.20::0", "170204::10.0.1.20::0", "10092::10.0.1.20::0", "153412::10.0.1.20::0"]
+      "tasks": [
+        "issue_SslCr7mK::host_Dk01rT9n::0",
+        "issue_OpSh3pQv::host_Dk01rT9n::0",
+        "issue_FtpA4kMz::host_Dk01rT9n::0",
+        "issue_Dckr2hJt::host_Dk01rT9n::0"
+      ],
+      "slug": "host_Dk01rT9n",
+      "ips": [
+        "10.0.1.20"
+      ]
     },
     {
-      "ip": "10.0.1.30",
       "name": "DC01",
       "os": "Windows Server 2022",
       "type": "general-purpose",
       "klass": "Server",
       "subnet": "10.0.1.0/24",
-      "tasks": ["97041::10.0.1.30::0", "63145::10.0.1.30::0", "110385::10.0.1.30::0", "42873::10.0.1.30::0", "166555::10.0.1.30::0"]
+      "tasks": [
+        "issue_SslCr7mK::host_Dc01vQ3p::0",
+        "issue_SmbS5jBn::host_Dc01vQ3p::0",
+        "issue_UnqP8wCf::host_Dc01vQ3p::0",
+        "issue_Swt32dHx::host_Dc01vQ3p::0",
+        "issue_WnVr6eRy::host_Dc01vQ3p::0"
+      ],
+      "slug": "host_Dc01vQ3p",
+      "ips": [
+        "10.0.1.30"
+      ]
     },
     {
-      "ip": "10.0.1.40",
       "name": "app-staging-01",
       "os": "CentOS Stream 9",
       "type": "general-purpose",
       "klass": "Server",
       "subnet": "10.0.1.0/24",
-      "tasks": ["156032::10.0.1.40::0", "170204::10.0.1.40::0", "158901::10.0.1.40::0"]
+      "tasks": [
+        "issue_Apch9nTr::host_As01bN5j::0",
+        "issue_OpSh3pQv::host_As01bN5j::0",
+        "issue_PhpV1gLs::host_As01bN5j::0"
+      ],
+      "slug": "host_As01bN5j",
+      "ips": [
+        "10.0.1.40"
+      ]
     },
     {
-      "ip": "10.0.1.50",
       "name": "ADMIN-PC",
       "os": "Windows 11 23H2",
       "type": "general-purpose",
       "klass": "Workstation",
       "subnet": "10.0.1.0/24",
-      "tasks": ["170204::10.0.1.50::0", "63145::10.0.1.50::0", "110385::10.0.1.50::0", "166555::10.0.1.50::0"]
+      "tasks": [
+        "issue_OpSh3pQv::host_Ad01cF8w::0",
+        "issue_SmbS5jBn::host_Ad01cF8w::0",
+        "issue_UnqP8wCf::host_Ad01cF8w::0",
+        "issue_WnVr6eRy::host_Ad01cF8w::0"
+      ],
+      "slug": "host_Ad01cF8w",
+      "ips": [
+        "10.0.1.50"
+      ]
     }
   ]
 };
@@ -848,10 +1013,11 @@ function sanitizeData(raw) {
     const tasks = iss.tasks.map(t => {
       if (!t || typeof t !== 'object') return null;
       const id = sanitizeString(t.id);
-      if (!/^[0-9]+::[^:]+::\d+$/.test(id)) throw new Error('Invalid task id format: ' + id);
-      return { id: id, host: sanitizeString(t.host), detail: sanitizeString(t.detail || '') };
+      if (!/^issue_[A-Za-z0-9]{8}::host_[A-Za-z0-9]{8}::\d+$/.test(id)) throw new Error('Invalid task id format: ' + id);
+      return { id: id, machine: sanitizeString(t.machine), detail: sanitizeString(t.detail || '') };
     }).filter(Boolean);
     return {
+      slug: sanitizeString(iss.slug),
       pid: sanitizeString(iss.pid),
       name: sanitizeString(iss.name),
       family: sanitizeString(iss.family || ''),
@@ -878,7 +1044,8 @@ function sanitizeData(raw) {
   const machines = raw.machines.map((m, idx) => {
     if (!m || typeof m !== 'object') throw new Error('Machine ' + idx + ' is not an object');
     return {
-      ip: sanitizeString(m.ip),
+      slug: sanitizeString(m.slug),
+      ips: Array.isArray(m.ips) ? m.ips.map(sanitizeString) : [],
       name: sanitizeString(m.name || ''),
       os: sanitizeString(m.os || 'Unknown'),
       type: sanitizeString(m.type || ''),
@@ -895,7 +1062,7 @@ function sanitizeChecked(raw) {
   if (!raw || typeof raw !== 'object') return {};
   const clean = {};
   Object.keys(raw).forEach(function(k) {
-    if (typeof k === 'string' && /^[0-9]+::[^:]+::\d+$/.test(k) && raw[k] === 1) {
+    if (typeof k === 'string' && /^issue_[A-Za-z0-9]{8}::host_[A-Za-z0-9]{8}::\d+$/.test(k) && raw[k] === 1) {
       clean[k] = 1;
     }
   });
@@ -1180,14 +1347,14 @@ function renderIssues() {
 
       html += '<div class="hosts-panel' + (isHostsOpen ? ' open' : '') + '" id="' + hostsId + '">';
       iss.tasks.forEach(t => {
-        const m = DATA.machines.find(mm => mm.ip === t.host);
+        const m = DATA.machines.find(mm => mm.slug === t.machine);
         const hostName = m && m.name ? m.name : '';
         const isDone = isChecked(t.id);
         html += '<div class="host-row">';
         html += '<input type="checkbox" ' + (isDone ? 'checked' : '') +
-          ' onchange="toggleTask(\'' + t.id + '\',this.checked)" aria-label="' + esc(t.host) + '">';
+          ' onchange="toggleTask(\'' + t.id + '\',this.checked)" aria-label="' + esc(m ? m.ips.join(', ') : t.machine) + '">';
         html += '<span class="host-row-name' + (isDone ? ' done' : '') + '">' + (hostName ? esc(hostName) : '') + '</span>';
-        html += '<span class="host-row-ip">' + esc(t.host) + '</span>';
+        html += '<span class="host-row-ip">' + esc(m ? m.ips.join(', ') : t.machine) + '</span>';
         html += '</div>';
       });
       html += '</div>';
@@ -1258,21 +1425,22 @@ function renderMachines() {
       const mTasks = m.tasks;
       const mDone = mTasks.filter(t => isChecked(t)).length;
       const mAll = mTasks.length;
-      const mGrpId = 'msub-' + m.ip.replace(/\./g, '_');
-      const label = m.name ? m.name + ' (' + m.ip + ')' : m.ip;
+      const mGrpId = 'msub-' + m.slug;
+      const ipStr = m.ips.join(', ');
+      const label = m.name ? m.name + ' (' + ipStr + ')' : ipStr;
 
       html += '<div class="group collapsed" id="' + mGrpId + '" style="margin:4px 8px;box-shadow:none">';
-      html += '<div class="group-header" tabindex="0" onclick="toggleMachineGroup(\'' + mGrpId + '\',\'' + esc(m.ip) + '\')" onkeydown="if(event.key===\'Enter\')toggleMachineGroup(\'' + mGrpId + '\',\'' + esc(m.ip) + '\')" style="padding:6px 10px">';
+      html += '<div class="group-header" tabindex="0" onclick="toggleMachineGroup(\'' + mGrpId + '\',\'' + esc(m.slug) + '\')" onkeydown="if(event.key===\'Enter\')toggleMachineGroup(\'' + mGrpId + '\',\'' + esc(m.slug) + '\')" style="padding:6px 10px">';
       html += chevronSvg();
       html += '<span class="group-title" style="font-size:12px">' + esc(label) + '</span>';
       html += '<span class="group-count" data-gcount="' + mGrpId + '" style="font-size:10px">' + mDone + '/' + mAll + '</span>';
       html += '<div class="group-progress" style="width:40px"><div class="group-progress-fill" data-gfill="' + mGrpId + '" style="width:' + (mAll ? (mDone/mAll*100) : 0) + '%"></div></div>';
       html += '<div class="group-actions">';
-      html += '<button class="group-action" onclick="event.stopPropagation();checkMachine(\'' + esc(m.ip) + '\',true)">All</button>';
-      html += '<button class="group-action" onclick="event.stopPropagation();checkMachine(\'' + esc(m.ip) + '\',false)">None</button>';
+      html += '<button class="group-action" onclick="event.stopPropagation();checkMachine(\'' + esc(m.slug) + '\',true)">All</button>';
+      html += '<button class="group-action" onclick="event.stopPropagation();checkMachine(\'' + esc(m.slug) + '\',false)">None</button>';
       html += '</div></div>';
 
-      html += '<div class="group-body" data-gbody="' + mGrpId + '" data-machine-ip="' + esc(m.ip) + '"></div>';
+      html += '<div class="group-body" data-gbody="' + mGrpId + '" data-machine-slug="' + esc(m.slug) + '"></div>';
       html += '</div>';
     });
 
@@ -1292,10 +1460,9 @@ function matchesSearch(iss, machine) {
   if (iss.pid.includes(q)) return true;
   if (iss.family.toLowerCase().includes(q)) return true;
   if (iss.cves.some(c => c.toLowerCase().includes(q))) return true;
-  if (iss.tasks.some(t => t.host.includes(q))) return true;
   if (iss.tasks.some(t => {
-    const m = DATA.machines.find(mm => mm.ip === t.host);
-    return m && m.name && m.name.toLowerCase().includes(q);
+    const m = DATA.machines.find(mm => mm.slug === t.machine);
+    return m && (m.ips.some(ip => ip.includes(q)) || (m.name && m.name.toLowerCase().includes(q)));
   })) return true;
   return false;
 }
@@ -1303,13 +1470,13 @@ function matchesSearchMachine(m) {
   if (filterUndone && m.tasks.every(t => isChecked(t))) return false;
   if (!searchTerm) return true;
   const q = searchTerm.toLowerCase();
-  if (m.ip.includes(q)) return true;
+  if (m.ips.some(ip => ip.includes(q))) return true;
   if (m.name && m.name.toLowerCase().includes(q)) return true;
   if (m.os.toLowerCase().includes(q)) return true;
   if (m.subnet.includes(q)) return true;
   if (m.tasks.some(tid => {
-    const pid = tid.split('::')[0];
-    const iss = DATA.issues.find(i => i.pid === pid);
+    const issSlug = tid.split('::')[0];
+    const iss = DATA.issues.find(i => i.slug === issSlug);
     return iss && iss.name.toLowerCase().includes(q);
   })) return true;
   return false;
@@ -1337,8 +1504,8 @@ function checkMachineGroup(grpId, val) {
   });
   refreshAll();
 }
-function checkMachine(ip, val) {
-  const m = DATA.machines.find(mm => mm.ip === ip);
+function checkMachine(slug, val) {
+  const m = DATA.machines.find(mm => mm.slug === slug);
   if (m) m.tasks.forEach(t => setChecked(t, val));
   refreshAll();
 }
@@ -1346,7 +1513,7 @@ function checkMachine(ip, val) {
 function toggleGroup(grpId) {
   document.getElementById(grpId)?.classList.toggle('collapsed');
 }
-function toggleMachineGroup(grpId, ip) {
+function toggleMachineGroup(grpId, slug) {
   const el = document.getElementById(grpId);
   if (!el) return;
   const wasCollapsed = el.classList.contains('collapsed');
@@ -1355,17 +1522,17 @@ function toggleMachineGroup(grpId, ip) {
     const body = el.querySelector('[data-gbody]');
     if (body && !body.dataset.rendered) {
       body.dataset.rendered = '1';
-      renderMachineBody(body, ip);
+      renderMachineBody(body, slug);
     }
   }
 }
-function renderMachineBody(body, ip) {
-  const m = DATA.machines.find(mm => mm.ip === ip);
+function renderMachineBody(body, slug) {
+  const m = DATA.machines.find(mm => mm.slug === slug);
   if (!m) return;
-  let html = '<div class="machine-os">' + esc(m.os) + '</div>';
+  let html = '<div class="machine-os">' + esc(m.os) + (m.ips.length ? ' &mdash; ' + m.ips.map(esc).join(', ') : '') + '</div>';
   m.tasks.forEach(tid => {
-    const [pid, host, sub] = tid.split('::');
-    const iss = DATA.issues.find(i => i.pid === pid);
+    const issSlug = tid.split('::')[0];
+    const iss = DATA.issues.find(i => i.slug === issSlug);
     if (!iss) return;
     const task = iss.tasks.find(t => t.id === tid);
     const isDone = isChecked(tid);

@@ -34,6 +34,7 @@ Each object is one Nessus plugin that met the threshold. Issues are displayed gr
 
 | Field             | Type     | Source | Description |
 |-------------------|----------|--------|-------------|
+| `slug`            | string   | Generated | Unique identifier, format `issue_XXXXXXXX` (8 random alphanumeric chars). Stable across renames |
 | `pid`             | string   | `pluginID` attribute on `<ReportItem>` | Nessus plugin ID |
 | `name`            | string   | `pluginName` attribute on `<ReportItem>` | Plugin display name |
 | `family`          | string   | `pluginFamily` attribute on `<ReportItem>` | Nessus plugin family |
@@ -59,8 +60,8 @@ Each object is one Nessus plugin that met the threshold. Issues are displayed gr
 
 | Field    | Type   | Description |
 |----------|--------|-------------|
-| `id`     | string | Format: `pluginID::hostIP::subIndex`. This is the unique checkbox key shared between Issues and Machines views. subIndex is usually `0` unless the same plugin fires multiple times on one host |
-| `host`   | string | IP address from the `<ReportHost>` `name` attribute |
+| `id`     | string | Format: `issueSlug::machineSlug::subIndex` (e.g. `issue_Ab3kX9mQ::host_Zt7pL2nR::0`). Unique checkbox key shared between Issues and Machines views. subIndex is usually `0` unless the same plugin fires multiple times on one host |
+| `machine`| string | Machine slug (e.g. `host_Zt7pL2nR`). References a machine in the `machines` array by its `slug` field |
 | `detail` | string | Extracted from `<plugin_output>` child, pipe delimited if multi line. Gives host specific context like exact version numbers |
 
 ### machines (array of objects)
@@ -69,17 +70,31 @@ Each object is one host that appears in at least one issue's task list.
 
 | Field    | Type     | Source | Description |
 |----------|----------|--------|-------------|
-| `ip`     | string   | `name` attribute on `<ReportHost>` | IP address |
+| `slug`   | string   | Generated | Unique identifier, format `host_XXXXXXXX` (8 random alphanumeric chars). Stable across IP changes and renames |
+| `ips`    | string[] | `name` attribute on `<ReportHost>` | IP addresses associated with this machine. Array supports hosts with multiple IPs |
 | `name`   | string   | `host-fqdn` or `netbios-name` from `<HostProperties>` | Hostname if available |
 | `os`     | string   | `operating-system` tag from `<HostProperties>` | OS string |
 | `type`   | string   | Derived or `system-type` tag | General description |
 | `klass`  | string   | Derived from OS/type | `"Server"`, `"Workstation"`, `"Embedded"`, or `"Legacy"`. Controls the top level grouping in the Machines view |
 | `subnet` | string   | Derived from IP | CIDR notation, e.g. `"10.0.1.0/24"` |
-| `tasks`  | string[] | Collected from all issues | Array of task IDs (`pluginID::hostIP::subIndex`) for this machine. Must match exactly the `id` values in the issues array |
+| `tasks`  | string[] | Collected from all issues | Array of task IDs (`issueSlug::machineSlug::subIndex`) for this machine. Must match exactly the `id` values in the issues array |
+
+## Slugs and Cross Referencing
+
+Every issue and machine gets a slug: a random stable identifier in the format `type_XXXXXXXX` (8 alphanumeric characters). Issues use the prefix `issue_`, machines use `host_`.
+
+Slugs enable:
+- **Multiple IPs per machine**: The `ips` field is an array, so a host with multiple network interfaces is one machine entry
+- **Renames without breakage**: Changing a hostname or IP does not break task cross references
+- **Stable task IDs**: Task IDs are composed from slugs (`issueSlug::machineSlug::subIndex`), not from mutable data like plugin IDs or IP addresses
+
+Tasks reference machines by slug (the `machine` field), not by IP. The template resolves machine metadata (hostname, IPs, OS) by looking up the slug in the machines array.
 
 ## Critical Invariant
 
 Every task ID in `machines[].tasks` must exist in exactly one `issues[].tasks[].id`, and vice versa. The Issues view and Machines view share a single checkbox state keyed by these IDs. A mismatch means a checkbox in one view has no counterpart in the other.
+
+Every `tasks[].machine` value must match exactly one `machines[].slug`. A task referencing a nonexistent machine slug will fail to render host metadata.
 
 ## Human Written Fields
 

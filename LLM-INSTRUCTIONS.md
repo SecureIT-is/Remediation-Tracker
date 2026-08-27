@@ -163,12 +163,22 @@ Assign each selected issue:
 
 ## Step 4: Build the DATA object
 
+Every issue and machine gets a slug: a stable random identifier that enables cross referencing without depending on mutable data like IPs or hostnames.
+
+- Issue slugs: `issue_XXXXXXXX` (8 random alphanumeric characters)
+- Machine slugs: `host_XXXXXXXX` (8 random alphanumeric characters)
+- Task IDs: `issueSlug::machineSlug::subIndex`
+
 ```python
-import json
+import json, random, string
 
 # Assumes: `selected` is your list of chosen plugin dicts with
 # added workstream/effort/estimate/remediation/caveat fields.
 # `hosts_data` is the host properties dict from Step 1.
+
+def gen_slug(prefix):
+    chars = string.ascii_letters + string.digits
+    return prefix + "_" + "".join(random.choices(chars, k=8))
 
 def classify_host(ip, props):
     """Derive klass from OS and hostname."""
@@ -188,19 +198,29 @@ def derive_subnet(ip):
         return f"{parts[0]}.{parts[1]}.{parts[2]}.0/24"
     return ""
 
+# Assign a machine slug to each unique IP
+machine_slugs = {}  # ip -> slug
+for p in selected:
+    for ip in p["hosts"]:
+        if ip not in machine_slugs:
+            machine_slugs[ip] = gen_slug("host")
+
 # Build issues and collect machine task lists
 issues = []
 machine_tasks = {}  # ip -> [task_id, ...]
 
 for p in selected:
+    issue_slug = gen_slug("issue")
     tasks = []
     for ip, outputs in sorted(p["hosts"].items()):
+        m_slug = machine_slugs[ip]
         for i, detail in enumerate(outputs if outputs else [""]):
-            tid = f"{p['pid']}::{ip}::{i}"
-            tasks.append({"id": tid, "host": ip, "detail": detail})
+            tid = f"{issue_slug}::{m_slug}::{i}"
+            tasks.append({"id": tid, "machine": m_slug, "detail": detail})
             machine_tasks.setdefault(ip, []).append(tid)
 
     issues.append({
+        "slug": issue_slug,
         "pid": p["pid"],
         "name": p["name"],
         "family": p["family"],
@@ -228,7 +248,8 @@ machines = []
 for ip, task_ids in sorted(machine_tasks.items()):
     props = hosts_data.get(ip, {})
     machines.append({
-        "ip": ip,
+        "slug": machine_slugs[ip],
+        "ips": [ip],
         "name": props.get("host-fqdn", props.get("netbios-name", "")),
         "os": props.get("operating-system", "Unknown"),
         "type": "general-purpose",
@@ -236,6 +257,8 @@ for ip, task_ids in sorted(machine_tasks.items()):
         "subnet": derive_subnet(ip),
         "tasks": task_ids
     })
+
+task_count = sum(len(iss["tasks"]) for iss in issues)
 
 DATA = {
     "meta": {
@@ -250,6 +273,28 @@ with open("data_payload.json", "w") as f:
     json.dump(DATA, f)
 
 print(f"Payload: {len(issues)} issues, {len(machines)} machines, {task_count} tasks")
+```
+
+### Machines with multiple IPs
+
+The `ips` field is an array. If a host has multiple network interfaces discovered during the scan, merge them into one machine entry:
+
+```python
+# After building machines, merge entries that share a hostname
+from collections import defaultdict
+
+by_name = defaultdict(list)
+for m in machines:
+    if m["name"]:
+        by_name[m["name"]].append(m)
+
+for name, dupes in by_name.items():
+    if len(dupes) > 1:
+        primary = dupes[0]
+        for other in dupes[1:]:
+            primary["ips"].extend(other["ips"])
+            primary["tasks"].extend(other["tasks"])
+            machines.remove(other)
 ```
 
 ## Step 5: CISA KEV enrichment (optional but recommended)
@@ -330,7 +375,7 @@ print(f"Written to {output_file}")
 2. python parse.py          # Step 1: stream-parse .nessus -> all_plugins.json
 3. python filter_sort.py    # Step 2: filter VPR>=8.5, sort by count
 4. [analyst work]           # Step 3: select top N, write remediation/effort/workstream
-5. python build_data.py     # Step 4+5: build DATA object with KEV enrichment
+5. python build_data.py     # Step 4+5: build DATA object with slugs + KEV enrichment
 6. python inject.py         # Step 6: place into template copy
 7. open output.html         # verify in browser
 ```
