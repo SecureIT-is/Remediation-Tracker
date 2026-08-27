@@ -1601,15 +1601,14 @@ function navToMachine(slug) {
   switchView('machines');
   refreshAll();
   requestAnimationFrame(() => {
-    const el = document.getElementById('msub-' + slug);
+    const mGrpId = 'msub-' + slug;
+    const el = document.getElementById(mGrpId);
     if (!el) return;
-    const grp = el.closest('.group');
-    if (grp && grp.classList.contains('collapsed')) {
-      grp.classList.remove('collapsed');
-    }
-    if (el.classList.contains('collapsed')) {
-      toggleMachineGroup('msub-' + slug, slug);
-    }
+    const parent = el.parentElement ? el.parentElement.closest('.group') : null;
+    if (parent && parent.classList.contains('collapsed')) parent.classList.remove('collapsed');
+    el.classList.remove('collapsed');
+    const body = el.querySelector('[data-gbody="' + mGrpId + '"]');
+    if (body) renderMachineBody(body, slug);
     requestAnimationFrame(() => {
       el.scrollIntoView({ behavior: 'smooth', block: 'center' });
       el.style.outline = '2px solid var(--gold)';
