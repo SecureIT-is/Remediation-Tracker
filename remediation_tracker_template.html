@@ -183,7 +183,7 @@ body {
 .view-panel.active { display: block; }
 
 .group { margin-bottom: 12px; border: 1px solid var(--border); border-radius: 6px;
-  overflow: hidden; background: var(--surface-raised); box-shadow: var(--shadow); }
+  overflow: hidden; background: var(--surface-raised); box-shadow: var(--shadow); scroll-margin-top: 200px; }
 .group-header {
   display: flex; align-items: center; gap: 10px; padding: 10px 14px;
   background: var(--surface-alt); cursor: pointer; user-select: none;
@@ -218,7 +218,7 @@ body {
 .group-action:hover { border-color: var(--gold); color: var(--gold-dark); }
 .group-action:focus-visible { outline: 2px solid var(--gold); outline-offset: 1px; }
 
-.issue-card { border-bottom: 1px solid var(--border-subtle); }
+.issue-card { border-bottom: 1px solid var(--border-subtle); scroll-margin-top: 200px; }
 .issue-card:last-child { border-bottom: none; }
 .issue-row {
   display: grid;
@@ -1611,7 +1611,7 @@ function navToMachine(slug) {
     const body = el.querySelector('[data-gbody="' + mGrpId + '"]');
     if (body) renderMachineBody(body, slug);
     requestAnimationFrame(() => {
-      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
       el.style.outline = '2px solid var(--gold)';
       setTimeout(() => { el.style.outline = ''; }, 1500);
     });
@@ -1630,7 +1630,7 @@ function navToIssue(issueSlug) {
     const grp = card.closest('.group');
     if (grp && grp.classList.contains('collapsed')) grp.classList.remove('collapsed');
     requestAnimationFrame(() => {
-      card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      card.scrollIntoView({ behavior: 'smooth', block: 'start' });
       card.style.outline = '2px solid var(--gold)';
       setTimeout(() => { card.style.outline = ''; }, 1500);
     });
