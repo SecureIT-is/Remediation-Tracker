@@ -154,6 +154,14 @@ From the sorted list, pick the top N most achievable remediation items. "Achieva
    - High: Migration, replacement, or multi-step project
 4. **Group into workstreams**: Cluster related issues so the remediation plan is coherent (e.g., all Windows registry hardening goes together).
 
+### Consolidate version related findings
+
+When multiple findings target the same path, service, or daemon and differ only in version thresholds, the remediation is a single upgrade to the highest version required to close all of them simultaneously. Do not create separate remediation tasks that each upgrade to a different version of the same thing.
+
+For example, if three plugins fire on the same host for OpenSSL < 1.1.1w, OpenSSL < 3.0.12, and OpenSSL < 3.1.4, and the installed binary is the same OpenSSL instance, the remediation is one upgrade to >= 3.1.4 (or the latest stable in that branch). Write the remediation text to name the highest required version and list the CVEs from all consolidated findings.
+
+When the findings clearly target the same component (same path in plugin output, same service port, same daemon), consolidate without asking. When it is ambiguous (e.g., the same library appears at different paths suggesting separate installations), ask the user before merging.
+
 Assign each selected issue:
 - `workstream` (string)
 - `effort` ("Low" / "Medium" / "High")
@@ -277,7 +285,13 @@ print(f"Payload: {len(issues)} issues, {len(machines)} machines, {task_count} ta
 
 ### Machines with multiple IPs
 
-The `ips` field is an array. If a host has multiple network interfaces discovered during the scan, merge them into one machine entry:
+Nessus treats each IP as a separate `ReportHost`. A single physical or virtual machine with multiple network interfaces appears as multiple entries in the parsed data. These must be merged into one machine with an `ips` array.
+
+**When to merge automatically**: The host properties (`host-fqdn`, `netbios-name`, `operating-system`) match across IPs. Same hostname + same OS = same machine. Merge without asking.
+
+**When to ask the user**: Hostnames differ or are missing, but the IPs are on the same subnet and the OS matches. This could be one machine or two. Present the candidate merge and let the user decide during JSON creation.
+
+After merging machines, deduplicate tasks: if the same plugin fires on the same machine across multiple IPs with identical output, keep one task (the finding is the same, the remediation is the same). If the plugin output differs across IPs (e.g., different ports or different versions), keep separate tasks.
 
 ```python
 # After building machines, merge entries that share a hostname
@@ -288,13 +302,37 @@ for m in machines:
     if m["name"]:
         by_name[m["name"]].append(m)
 
+slug_remap = {}  # old slug -> primary slug
 for name, dupes in by_name.items():
     if len(dupes) > 1:
         primary = dupes[0]
         for other in dupes[1:]:
             primary["ips"].extend(other["ips"])
-            primary["tasks"].extend(other["tasks"])
+            slug_remap[other["slug"]] = primary["slug"]
             machines.remove(other)
+
+# Remap and deduplicate tasks in issues
+for iss in issues:
+    seen = set()
+    new_tasks = []
+    for t in iss["tasks"]:
+        if t["machine"] in slug_remap:
+            t["machine"] = slug_remap[t["machine"]]
+            t["id"] = f"{iss['slug']}::{t['machine']}::0"
+        key = (iss["slug"], t["machine"])
+        if key not in seen:
+            seen.add(key)
+            new_tasks.append(t)
+    iss["tasks"] = new_tasks
+
+# Rebuild machine task lists
+for m in machines:
+    m["tasks"] = []
+for iss in issues:
+    for t in iss["tasks"]:
+        m = next((mm for mm in machines if mm["slug"] == t["machine"]), None)
+        if m:
+            m["tasks"].append(t["id"])
 ```
 
 ## Step 5: CISA KEV enrichment (optional but recommended)
