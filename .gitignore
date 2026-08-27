@@ -1,3 +1,4 @@
-UNAK/
+Projects/*
+!Projects/.gitkeep
 .DS_Store
 .claude/

@@ -108,3 +108,7 @@ The following fields are not extracted mechanically from the .nessus file and re
 - `klass` (on machines): Classification based on OS, hostname patterns, and network segment
 
 These are where the real value of the tracker lives. The Nessus `solution` field is kept in `nessus_solution` as a starting point, but the `remediation` field should contain environment specific guidance based on plugin output analysis and independent research.
+
+## Output Location
+
+Generated tracker files go in `Projects/<client>/` (e.g. `Projects/UNAK/unak_q2_2026_remediation.html`). The `Projects/` directory is git ignored so client data stays local and never syncs to the template repository.

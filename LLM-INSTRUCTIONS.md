@@ -322,46 +322,50 @@ for iss in issues:
 
 ## Step 6: Place JSON into the template
 
-1. Copy `remediation_tracker_template.html` to a new file, e.g. `acme_q3_2026_remediation.html`.
+Output files go in `Projects/<client>/` (e.g. `Projects/ACME/`). This directory is git ignored so client data stays local and never syncs to the template repository. Create the client subfolder if it does not exist.
+
+1. Copy `remediation_tracker_template.html` to `Projects/<client>/<name>_remediation.html`.
 2. Open the copy in a text editor.
-3. Replace the `SCAN_NAME` value:
+3. Replace the entire `const INITIAL_DATA = { ... };` block with your generated JSON:
    ```js
-   const SCAN_NAME = "Acme Q3 2026";
+   const INITIAL_DATA = <paste contents of data_payload.json here>;
    ```
-4. Replace the entire `const DATA = { ... };` block with your generated JSON:
-   ```js
-   const DATA = <paste contents of data_payload.json here>;
-   ```
-5. Save. Open in a browser. Done.
+   The template derives `SCAN_NAME` from `DATA.meta.scan` at runtime; no separate variable to set.
+4. Save. Open in a browser. Done.
 
 Alternatively, with Python:
 
 ```python
+import json, os
+
 with open("remediation_tracker_template.html") as f:
     html = f.read()
 
 with open("data_payload.json") as f:
     payload = f.read()
 
-scan_name = "Acme Q3 2026"
+client = "acme"
+scan_name = "acme_q3_2026"
 
-# Replace SCAN_NAME
-html = html.replace(
-    'const SCAN_NAME = "Example Corp Q3 2026";',
-    f'const SCAN_NAME = {json.dumps(scan_name)};'
-)
+# Replace INITIAL_DATA block using string search (re.sub fails on backslashes in payload)
+start_marker = "const INITIAL_DATA = {"
+start_idx = html.index(start_marker)
+depth, i = 0, start_idx + len("const INITIAL_DATA = ")
+while i < len(html):
+    if html[i] == "{": depth += 1
+    elif html[i] == "}":
+        depth -= 1
+        if depth == 0:
+            end_idx = i + 1
+            if end_idx < len(html) and html[end_idx] == ";":
+                end_idx += 1
+            break
+    i += 1
+html = html[:start_idx] + f"const INITIAL_DATA = {payload};" + html[end_idx:]
 
-# Replace DATA block: find the line that starts with const DATA and ends with };
-import re
-html = re.sub(
-    r'const DATA = \{.*?\};',
-    f'const DATA = {payload};',
-    html,
-    count=1,
-    flags=re.DOTALL
-)
-
-output_file = scan_name.lower().replace(" ", "_") + "_remediation.html"
+output_dir = f"Projects/{client}"
+os.makedirs(output_dir, exist_ok=True)
+output_file = f"{output_dir}/{scan_name}_remediation.html"
 with open(output_file, "w") as f:
     f.write(html)
 
@@ -376,7 +380,7 @@ print(f"Written to {output_file}")
 3. python filter_sort.py    # Step 2: filter VPR>=8.5, sort by count
 4. [analyst work]           # Step 3: select top N, write remediation/effort/workstream
 5. python build_data.py     # Step 4+5: build DATA object with slugs + KEV enrichment
-6. python inject.py         # Step 6: place into template copy
+6. python inject.py         # Step 6: place into Projects/<client>/
 7. open output.html         # verify in browser
 ```
 
