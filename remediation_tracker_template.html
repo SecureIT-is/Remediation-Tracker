@@ -197,11 +197,11 @@ body {
 
 .splash-overlay {
   position: fixed; inset: 0; z-index: 300;
-  display: flex; align-items: center; justify-content: center; flex-direction: column;
+  display: none; align-items: center; justify-content: center; flex-direction: column;
   background: rgba(0,0,0,0.75); opacity: 0; transition: opacity 0.6s ease;
   pointer-events: none;
 }
-.splash-overlay.active { opacity: 1; pointer-events: auto; }
+.splash-overlay.active { display: flex; opacity: 1; pointer-events: auto; }
 .splash-overlay canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
 .splash-content {
   position: relative; z-index: 1; text-align: center; color: #fff;
@@ -420,9 +420,6 @@ body {
 .btn-save.dirty { background: #9B2C2C; border-color: #9B2C2C; animation: pulse-save 1.5s ease-in-out 1; }
 .btn-save.dirty:hover { background: #822727; border-color: #822727; }
 @keyframes pulse-save { 0%,100%{transform:scale(1)} 50%{transform:scale(1.05)} }
-.btn-load { background: var(--surface-alt); color: var(--gray-mid); }
-.btn-load:hover { border-color: var(--gold); color: var(--navy); }
-
 .modal-overlay {
   position: fixed; inset: 0; background: rgba(0,0,0,0.5);
   display: flex; align-items: center; justify-content: center; z-index: 200;
@@ -435,13 +432,6 @@ body {
 }
 .modal-title { font-size: 16px; font-weight: 700; color: var(--navy); margin-bottom: 12px; }
 .modal-text { font-size: 13px; color: var(--gray-mid); line-height: 1.5; margin-bottom: 20px; }
-.modal-summary {
-  background: var(--surface-alt); border: 1px solid var(--border-subtle);
-  border-radius: 4px; padding: 12px; font-size: 12px; color: var(--body-text);
-  margin-bottom: 16px; font-variant-numeric: tabular-nums;
-}
-.modal-summary div { padding: 2px 0; }
-.modal-summary strong { color: var(--navy); }
 .modal-warning {
   font-size: 11px; color: var(--kev-text); background: var(--kev-bg);
   border-left: 3px solid var(--kev-border); padding: 8px 12px;
@@ -456,7 +446,6 @@ body {
 .modal-btn-primary:hover { opacity: 0.9; }
 .modal-btn-secondary { background: var(--surface-alt); color: var(--gray-mid); }
 .modal-btn-secondary:hover { border-color: var(--gold); color: var(--navy); }
-.modal-btn-wide { display: block; width: 100%; padding: 12px; margin-bottom: 8px; text-align: center; }
 .modal-btn:focus-visible { outline: 2px solid var(--gold); outline-offset: 1px; }
 
 .gear-btn {
@@ -481,8 +470,6 @@ body {
 .theme-pill.active { background: var(--navy); color: #fff; }
 .theme-pill:hover:not(.active) { color: var(--navy); }
 .theme-pill:focus-visible { outline: 2px solid var(--gold); outline-offset: -2px; }
-.ui-hidden { display: none !important; }
-
 .fp-btn {
   font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 3px;
   background: none; border: 1px solid var(--border); color: var(--gray-mid);
@@ -518,8 +505,7 @@ body {
     <span class="header-title" id="headerTitle"></span>
     <div class="toolbar" id="toolbar">
       <div class="toolbar-group">
-        <button class="toolbar-btn btn-load" onclick="pickJsonFile()">Load</button>
-        <button class="toolbar-btn btn-save" id="saveBtn" onclick="saveToFile()">Save</button>
+        <button class="toolbar-btn btn-save" id="saveBtn" onclick="saveToHtml()">Save</button>
       </div>
       <div class="toolbar-spacer"></div>
       <button class="toolbar-btn btn-clear" onclick="clearData()">Clear</button>
@@ -551,29 +537,6 @@ body {
   <div class="view-panel" id="machinesView"></div>
 </div>
 
-<input type="file" id="fileInput" accept=".json" style="display:none">
-
-<div class="modal-overlay hidden" id="startupModal">
-  <div class="modal">
-    <div class="modal-title">Remediation Tracker</div>
-    <div class="modal-text">No local data found in this browser. Choose how to load data:</div>
-    <button class="modal-btn modal-btn-primary modal-btn-wide" onclick="loadInitialData()">Load Initial Values</button>
-    <button class="modal-btn modal-btn-secondary modal-btn-wide" onclick="pickJsonFile()">Load JSON File</button>
-  </div>
-</div>
-
-<div class="modal-overlay hidden" id="confirmModal">
-  <div class="modal">
-    <div class="modal-title">Load Remediation Data</div>
-    <div class="modal-summary" id="confirmSummary"></div>
-    <div class="modal-warning">This will replace all current data and progress.</div>
-    <div class="modal-actions">
-      <button class="modal-btn modal-btn-secondary" onclick="cancelLoad()">Cancel</button>
-      <button class="modal-btn modal-btn-primary" onclick="confirmLoad()">Confirm Load</button>
-    </div>
-  </div>
-</div>
-
 <div class="modal-overlay hidden" id="clearModal">
   <div class="modal">
     <div class="modal-title">Clear Data</div>
@@ -595,7 +558,14 @@ body {
         <button class="theme-pill active" data-theme-val="system" onclick="setTheme('system')">System</button>
       </div>
     </div>
-    <div style="text-align:center;padding:12px 0 0;font-size:10px;color:var(--gray-mid);letter-spacing:0.03em">Remediation Tracker v<span id="versionLabel">0.91.9</span></div>
+    <div style="display:flex;align-items:center;justify-content:center;gap:10px;padding:12px 0 4px">
+      <span style="font-size:11px;font-weight:700;color:var(--gray-mid)">Date in filename</span>
+      <div class="theme-pills">
+        <button class="theme-pill active" data-datestamp-val="off" onclick="setDateStamp(false)">Off</button>
+        <button class="theme-pill" data-datestamp-val="on" onclick="setDateStamp(true)">On</button>
+      </div>
+    </div>
+    <div style="text-align:center;padding:12px 0 0;font-size:10px;color:var(--gray-mid);letter-spacing:0.03em">Remediation Tracker v<span id="versionLabel">0.92.3</span></div>
     <div style="text-align:center;padding:4px 0 0;font-size:10px;color:var(--gray-mid);letter-spacing:0.03em">Compatible Data Schemas: <span id="schemaLabel"></span></div>
     <div class="modal-actions" style="margin-top:16px">
       <button class="modal-btn modal-btn-primary" onclick="closeSettingsModal()">Done</button>
@@ -618,7 +588,7 @@ body {
 </div>
 
 <script>
-const TRACKER_VERSION = '0.91.9';
+const TRACKER_VERSION = '0.92.3';
 const COMPATIBLE_SCHEMA_VERSIONS = [200];
 const DATA_SCHEMA_VERSION = 200;
 
@@ -1101,10 +1071,12 @@ const INITIAL_DATA = {
 };
 
 const PRE_CHECKED = [];
+const FILE_STAMP = '';
+const SAVED_THEME = '';
+const SAVED_DATE_STAMP = false;
 
 /* ====================================================================== */
 
-const SESSION_KEY = 'secureit-rem-session';
 let DATA = null;
 let SCAN_NAME = '';
 let ALL_TASK_IDS = new Set();
@@ -1122,11 +1094,11 @@ let undoStack = [];
 let redoStack = [];
 const UNDO_MAX = 50;
 let _skipRecord = false;
-let pendingLoadData = null;
 const openDetails = new Set();
 const openHostPanels = new Set();
 const openMachineGroups = new Set();
 var sortMode = 'name';
+var dateStampSave = !!SAVED_DATE_STAMP;
 
 function compareIPs(a, b) {
   var pa = (a || '').split('.').map(Number);
@@ -1250,17 +1222,24 @@ function sanitizeChecked(raw) {
 }
 
 // --- Session persistence ---
+function sessionKey() {
+  var slug = (SCAN_NAME || 'untitled').replace(/\W+/g, '-').toLowerCase().substring(0, 40);
+  return 'secureit-rem-' + slug;
+}
+
 function saveSession() {
   try {
-    localStorage.setItem(SESSION_KEY, JSON.stringify({
+    localStorage.setItem(sessionKey(), JSON.stringify({
       type: 'secureit-remediation-tracker', version: 1,
-      scanName: SCAN_NAME, data: DATA, checked: checked, fpTasks: fpTasks, remNotes: remNotes
+      fileStamp: FILE_STAMP,
+      data: DATA, checked: checked, fpTasks: fpTasks, remNotes: remNotes
     }));
   } catch(e) {}
 }
+
 function loadSession() {
   try {
-    const raw = JSON.parse(localStorage.getItem(SESSION_KEY));
+    var raw = JSON.parse(localStorage.getItem(sessionKey()));
     if (raw && raw.data && raw.type === 'secureit-remediation-tracker') {
       if (!raw.fpTasks) raw.fpTasks = {};
       if (!raw.remNotes) raw.remNotes = {};
@@ -1376,58 +1355,29 @@ function updateSaveButton() {
   btn.classList.toggle('dirty', saveDirty);
 }
 
-// --- Modal helpers ---
-function showStartupModal() {
-  document.querySelector('.sticky-nav').classList.add('ui-hidden');
-  document.querySelector('.content').classList.add('ui-hidden');
-  document.getElementById('toolbar').classList.add('ui-hidden');
-  document.getElementById('headerMeta').innerHTML = '';
-  document.getElementById('headerTitle').textContent = 'Remediation Tracker';
-  document.title = 'Remediation Tracker';
-  document.getElementById('globalFill').style.width = '0%';
-  document.getElementById('globalLabel').textContent = '';
-  document.getElementById('startupModal').classList.remove('hidden');
-}
-
-function showConfirmModal(data, checkedState, fpState, notesState) {
-  pendingLoadData = { data: data, checked: checkedState, fpTasks: fpState, remNotes: notesState };
-  const issueCount = data.issues.length;
-  const machineCount = data.machines.length;
-  const taskCount = data.issues.reduce(function(s, i) { return s + i.tasks.length; }, 0);
-  document.getElementById('confirmSummary').innerHTML =
-    '<div><strong>Scan:</strong> ' + esc(data.meta.scan) + '</div>' +
-    '<div><strong>Date:</strong> ' + esc(data.meta.scan_date) + '</div>' +
-    '<div><strong>Issues:</strong> ' + issueCount + '</div>' +
-    '<div><strong>Machines:</strong> ' + machineCount + '</div>' +
-    '<div><strong>Tasks:</strong> ' + taskCount + '</div>' +
-    (checkedState ? '<div><strong>Progress:</strong> ' + Object.keys(checkedState).length + ' tasks checked</div>' : '');
-  document.getElementById('confirmModal').classList.remove('hidden');
-}
-
-function cancelLoad() {
-  pendingLoadData = null;
-  document.getElementById('confirmModal').classList.add('hidden');
-}
-
-function confirmLoad() {
-  if (!pendingLoadData) return;
-  document.getElementById('confirmModal').classList.add('hidden');
-  initWithData(pendingLoadData.data, pendingLoadData.checked, pendingLoadData.fpTasks, pendingLoadData.remNotes);
-  pendingLoadData = null;
-}
-
-// --- File save/load ---
-function saveToFile() {
-  const payload = JSON.stringify({
-    type: 'secureit-remediation-tracker', version: 1,
-    scanName: SCAN_NAME, data: DATA, checked: checked, fpTasks: fpTasks, remNotes: remNotes
-  }, null, 2);
-  const blob = new Blob([payload], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
+// --- File save ---
+function saveToHtml() {
+  var stamp = Math.random().toString(36).substring(2, 10) + Date.now().toString(36);
+  var src = '<!DOCTYPE html>\n<html>\n' + document.documentElement.innerHTML + '\n</html>';
+  var dataJson = JSON.stringify(DATA, null, 2);
+  src = src.replace(/const INITIAL_DATA = \{[\s\S]*?\};/, 'const INITIAL_DATA = ' + dataJson + ';');
+  var preIds = Object.keys(checked).filter(function(k) { return checked[k]; });
+  var preJson = JSON.stringify(preIds, null, 2);
+  src = src.replace(/const PRE_CHECKED = \[[\s\S]*?\];/, 'const PRE_CHECKED = ' + preJson + ';');
+  src = src.replace(/const FILE_STAMP = '[^']*';/, "const FILE_STAMP = '" + stamp + "';");
+  var curTheme = document.documentElement.getAttribute('data-theme') || '';
+  src = src.replace(/const SAVED_THEME = '[^']*';/, "const SAVED_THEME = '" + curTheme + "';");
+  src = src.replace(/const SAVED_DATE_STAMP = (true|false);/, 'const SAVED_DATE_STAMP = ' + dateStampSave + ';');
+  var blob = new Blob([src], { type: 'text/html' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
   a.href = url;
-  var d = new Date(), ds = '' + d.getFullYear() + ('0'+(d.getMonth()+1)).slice(-2) + ('0'+d.getDate()).slice(-2);
-  a.download = SCAN_NAME.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-remediation-' + ds + '.json';
+  var baseName = SCAN_NAME.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-remediation';
+  if (dateStampSave) {
+    var d = new Date(), ds = '' + d.getFullYear() + ('0'+(d.getMonth()+1)).slice(-2) + ('0'+d.getDate()).slice(-2);
+    baseName += '-' + ds;
+  }
+  a.download = baseName + '.html';
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -1436,70 +1386,13 @@ function saveToFile() {
   updateSaveButton();
 }
 
-function pickJsonFile() {
-  document.getElementById('fileInput').click();
-}
-
-function handleFileLoad(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    try {
-      const raw = JSON.parse(e.target.result);
-      var cleanData, cleanChecked = null;
-
-      var cleanFP = null;
-      if (raw.type === 'secureit-remediation-tracker' && raw.data) {
-        cleanData = sanitizeData(raw.data);
-        if (raw.checked) cleanChecked = sanitizeChecked(raw.checked);
-        if (raw.fpTasks) cleanFP = sanitizeChecked(raw.fpTasks);
-        var cleanNotes = raw.remNotes && typeof raw.remNotes === 'object' ? raw.remNotes : null;
-      } else if (raw.meta && raw.issues && raw.machines) {
-        cleanData = sanitizeData(raw);
-      } else {
-        throw new Error('Unrecognized file format. Expected a remediation tracker export or raw data JSON.');
-      }
-
-      showConfirmModal(cleanData, cleanChecked, cleanFP, cleanNotes);
-    } catch(err) {
-      alert('Failed to load file: ' + err.message);
-    }
-    event.target.value = '';
-  };
-  reader.readAsText(file);
-}
-
-function loadInitialData() {
-  try {
-    const clean = sanitizeData(INITIAL_DATA);
-    var preState = null;
-    if (PRE_CHECKED && PRE_CHECKED.length) {
-      preState = {};
-      PRE_CHECKED.forEach(function(id) { preState[id] = 1; });
-    }
-    document.getElementById('startupModal').classList.add('hidden');
-    initWithData(clean, preState);
-    saveSession();
-  } catch(err) {
-    alert('Initial data failed validation: ' + err.message);
-  }
-}
-
 function clearData() {
   document.getElementById('clearModal').classList.remove('hidden');
 }
 function confirmClear() {
   _splashShown = false;
   document.getElementById('clearModal').classList.add('hidden');
-  try { localStorage.removeItem(SESSION_KEY); } catch(e) {}
-  DATA = null;
-  checked = {};
-  fpTasks = {};
-  remNotes = {};
-  document.getElementById('issuesView').innerHTML = '';
-  document.getElementById('machinesView').innerHTML = '';
-  showStartupModal();
+  loadFromEmbedded();
 }
 
 // --- Initialize with data ---
@@ -1545,15 +1438,7 @@ function initWithData(data, checkedState, fpState, notesState) {
 
   saveDirty = false;
   updateSaveButton();
-  saveSession();
   updateHeaderMeta();
-
-  document.querySelector('.sticky-nav').classList.remove('ui-hidden');
-  document.querySelector('.content').classList.remove('ui-hidden');
-  document.getElementById('toolbar').classList.remove('ui-hidden');
-  document.getElementById('startupModal').classList.add('hidden');
-  document.getElementById('confirmModal').classList.add('hidden');
-
   refreshAll();
 }
 
@@ -1623,7 +1508,7 @@ function renderIssues() {
   order.forEach(ws => {
     const issues = groups[ws];
     const allTasks = issues.flatMap(i => i.tasks);
-    const matchedIssues = issues.filter(i => matchesSearch(i, null));
+    const matchedIssues = issues.filter(i => matchesSearch(i));
     if (matchedIssues.length === 0) return;
 
     const total = allTasks.length;
@@ -1823,7 +1708,7 @@ function renderMachines() {
   });
 }
 
-function matchesSearch(iss, machine) {
+function matchesSearch(iss) {
   if (!showCompleted && iss.tasks.every(t => isResolved(t.id))) return false;
   if (!searchTerm) return true;
   const q = searchTerm.toLowerCase();
@@ -1976,7 +1861,6 @@ function toggleHosts(pid) {
 function toggleShowCompleted() {
   showCompleted = !showCompleted;
   document.getElementById('toggleCompleted').classList.toggle('active', showCompleted);
-  document.getElementById('toggleCompleted').textContent = showCompleted ? 'Show Completed' : 'Show Completed';
   refreshAll();
 }
 function switchView(view) {
@@ -2066,7 +1950,10 @@ function navToIssue(issueSlug, originSlug) {
 }
 
 window.addEventListener('beforeunload', function(e) {
-  if (saveDirty) { e.preventDefault(); e.returnValue = ''; }
+  if (saveDirty) {
+    e.preventDefault();
+    e.returnValue = 'Your changes are in browser storage but have not been saved to an HTML file. Leave without saving?';
+  }
 });
 document.addEventListener('keydown', function(e) {
   if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
@@ -2075,7 +1962,6 @@ document.addEventListener('keydown', function(e) {
     if (e.shiftKey) performRedo(); else performUndo();
   }
 });
-
 
 function updateGlobalProgress() {
   const total = ALL_TASK_IDS.size;
@@ -2213,8 +2099,6 @@ function refreshAll() {
 }
 
 // --- Startup ---
-document.getElementById('fileInput').addEventListener('change', handleFileLoad);
-
 let searchTimeout;
 document.getElementById('searchInput').addEventListener('input', function() {
   clearTimeout(searchTimeout);
@@ -2224,26 +2108,40 @@ document.getElementById('searchInput').addEventListener('input', function() {
   }, 200);
 });
 
-const session = loadSession();
-if (session) {
-  try {
-    const clean = sanitizeData(session.data);
-    const cleanChecked = session.checked ? sanitizeChecked(session.checked) : null;
-    const cleanFP = session.fpTasks ? sanitizeChecked(session.fpTasks) : null;
-    initWithData(clean, cleanChecked, cleanFP, session.remNotes || null);
-  } catch(e) {
-    localStorage.removeItem(SESSION_KEY);
-    showStartupModal();
+function loadFromEmbedded() {
+  var clean = sanitizeData(INITIAL_DATA);
+  var preState = null;
+  if (PRE_CHECKED && PRE_CHECKED.length) {
+    preState = {};
+    PRE_CHECKED.forEach(function(id) { preState[id] = 1; });
   }
-} else {
-  showStartupModal();
+  initWithData(clean, preState);
+  saveSession();
 }
+
+(function startup() {
+  SCAN_NAME = INITIAL_DATA.meta && INITIAL_DATA.meta.scan || 'Untitled';
+  var session = loadSession();
+  if (session && FILE_STAMP && session.fileStamp === FILE_STAMP) {
+    try {
+      var clean = sanitizeData(session.data);
+      var cleanChecked = session.checked ? sanitizeChecked(session.checked) : null;
+      var cleanFP = session.fpTasks ? sanitizeChecked(session.fpTasks) : null;
+      initWithData(clean, cleanChecked, cleanFP, session.remNotes || null);
+    } catch(e) {
+      loadFromEmbedded();
+    }
+  } else {
+    loadFromEmbedded();
+  }
+})();
 
 function toggleSettingsModal() {
   var m = document.getElementById('settingsModal');
   m.classList.toggle('hidden');
   if (!m.classList.contains('hidden')) {
     syncThemePills();
+    syncDateStampPills();
     document.getElementById('schemaLabel').textContent = COMPATIBLE_SCHEMA_VERSIONS.join(', ');
   }
 }
@@ -2265,12 +2163,26 @@ function setTheme(val) {
   try { localStorage.setItem('secureit-rem-theme', val); } catch(e) {}
   syncThemePills();
 }
+function syncDateStampPills() {
+  document.querySelectorAll('[data-datestamp-val]').forEach(function(b) {
+    b.classList.toggle('active', (b.getAttribute('data-datestamp-val') === 'on') === dateStampSave);
+  });
+}
+function setDateStamp(val) {
+  dateStampSave = !!val;
+  try { localStorage.setItem('secureit-rem-datestamp', val ? '1' : '0'); } catch(e) {}
+  syncDateStampPills();
+}
 (function() {
-  try {
-    var saved = localStorage.getItem('secureit-rem-theme');
-    if (saved === 'light' || saved === 'dark') {
-      document.documentElement.setAttribute('data-theme', saved);
-    }
-  } catch(e) {}
+  if (SAVED_THEME === 'light' || SAVED_THEME === 'dark') {
+    document.documentElement.setAttribute('data-theme', SAVED_THEME);
+  } else {
+    try {
+      var saved = localStorage.getItem('secureit-rem-theme');
+      if (saved === 'light' || saved === 'dark') {
+        document.documentElement.setAttribute('data-theme', saved);
+      }
+    } catch(e) {}
+  }
 })();
 </script>
