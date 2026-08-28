@@ -375,6 +375,26 @@ Alternatively, with Python:
 ```python
 import json, os
 
+def extract_js_object(src, marker):
+    start = src.index(marker)
+    obj_start = start + len(marker)
+    depth, i, in_string = 0, obj_start, False
+    while i < len(src):
+        c = src[i]
+        if in_string:
+            if c == '\\': i += 2; continue
+            if c == '"': in_string = False
+        else:
+            if c == '"': in_string = True
+            elif c == '{': depth += 1
+            elif c == '}':
+                depth -= 1
+                if depth == 0: break
+        i += 1
+    end = i + 1
+    if end < len(src) and src[end] == ';': end += 1
+    return start, end
+
 with open("remediation_tracker_template.html") as f:
     html = f.read()
 
@@ -384,20 +404,7 @@ with open("data_payload.json") as f:
 client = "acme"
 scan_name = "acme_q3_2026"
 
-# Replace INITIAL_DATA block using string search (re.sub fails on backslashes in payload)
-start_marker = "const INITIAL_DATA = {"
-start_idx = html.index(start_marker)
-depth, i = 0, start_idx + len("const INITIAL_DATA = ")
-while i < len(html):
-    if html[i] == "{": depth += 1
-    elif html[i] == "}":
-        depth -= 1
-        if depth == 0:
-            end_idx = i + 1
-            if end_idx < len(html) and html[end_idx] == ";":
-                end_idx += 1
-            break
-    i += 1
+start_idx, end_idx = extract_js_object(html, "const INITIAL_DATA = ")
 html = html[:start_idx] + f"const INITIAL_DATA = {payload};" + html[end_idx:]
 
 output_dir = f"Projects/{client}"
@@ -415,12 +422,71 @@ When upgrading an existing project tracker to a newer template version:
 
 1. Open the project file and read `INITIAL_DATA.meta.dataSchemaVersion`.
 2. Open the new template and read its `COMPATIBLE_SCHEMA_VERSIONS` array (declared near the top of the `<script>` block).
-3. If the project's `dataSchemaVersion` is in the template's compatible list: copy the entire `INITIAL_DATA` JSON from the project file into the new template, replacing the example data. Done. No transformation needed.
+3. If the project's `dataSchemaVersion` is in the template's compatible list: extract `INITIAL_DATA`, `PRE_CHECKED`, and `FILE_STAMP` from the project file and inject them into the new template, replacing the example data. Done. No transformation needed.
 4. If not compatible: a data migration is required between schema versions.
 
 The `dataSchemaVersion` field is the single source of truth for whether a DATA payload is compatible with a template version. Always check it before attempting a transfer.
 
-User progress (`checked`, `fpTasks`, `remNotes`) lives in localStorage and JSON save files, not in the HTML. After transferring the DATA payload, the user loads their existing save file to restore progress.
+User progress (`checked`, `fpTasks`, `remNotes`) lives in localStorage keyed by scan name. After transferring the DATA payload to a new template, session data resumes automatically if the scan name matches.
+
+### Extraction rules for transferring data between files
+
+The `INITIAL_DATA` block is a JavaScript object literal, not standalone JSON. Extracting it requires brace-matching that respects string contents, because the data contains nested objects, arrays, and string values that may include braces, backslashes, and special characters.
+
+**Use brace-matching, not regex.** A regex like `\{[\s\S]*?\}` stops at the first closing brace inside the object. A greedy variant overshoots. The only reliable method is walking the characters with a depth counter that skips string interiors:
+
+```python
+def extract_js_object(src, marker):
+    """Extract a JS object literal from src, starting after marker.
+    Returns (full_statement, start_idx, end_idx) where full_statement
+    includes 'const NAME = {...};'"""
+    start = src.index(marker)
+    obj_start = start + len(marker)
+    depth = 0
+    i = obj_start
+    in_string = False
+    while i < len(src):
+        c = src[i]
+        if in_string:
+            if c == '\\':
+                i += 2
+                continue
+            if c == '"':
+                in_string = False
+        else:
+            if c == '"':
+                in_string = True
+            elif c == '{':
+                depth += 1
+            elif c == '}':
+                depth -= 1
+                if depth == 0:
+                    break
+        i += 1
+    end = i + 1
+    if end < len(src) and src[end] == ';':
+        end += 1
+    return src[start:end], start, end
+```
+
+**Escape literal newlines.** Nessus plugin output often contains real newline characters. When `json.dump` writes a Python string containing `\n`, it produces `\\n` in the JSON (a two character escape sequence), which is valid inside a JS string literal. But if the data has been through a round trip (e.g. extracted from an HTML file where `document.documentElement.innerHTML` captured unescaped newlines), the file may contain literal newline characters inside JS string values. These break the JavaScript parser. After extracting the data block, replace any literal newlines:
+
+```python
+data_block = data_block.replace('\n', '\\n').replace('\r', '\\r')
+```
+
+Only apply this to the data block itself, not the surrounding template code.
+
+**Do not use `re.sub` with data as the replacement string.** Python's `re.sub` interprets backslash sequences in the replacement (`\1`, `\n`, etc.). Nessus output commonly contains backslashes (Windows registry paths like `HKLM\SOFTWARE\...`). Use a lambda replacement (`re.sub(pat, lambda m: replacement, src)`) or string slicing instead.
+
+**Transfer all three constants.** A complete migration transfers `INITIAL_DATA`, `PRE_CHECKED`, and `FILE_STAMP`. The `PRE_CHECKED` array and `FILE_STAMP` string use simple patterns that regex can handle safely:
+
+```python
+pre_checked = re.search(r'const PRE_CHECKED = \[[\s\S]*?\];', src).group(0)
+file_stamp = re.search(r"const FILE_STAMP = '[^']*';", src).group(0)
+```
+
+The other embedded constants (`SAVED_THEME`, `SAVED_DATE_STAMP`) carry user preferences. The template defaults are fine for a fresh migration; do not transfer them unless the user asks.
 
 ## Quick Reference: Full Workflow
 
