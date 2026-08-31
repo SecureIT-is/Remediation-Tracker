@@ -1074,6 +1074,7 @@ const PRE_CHECKED = [];
 const FILE_STAMP = '';
 const SAVED_THEME = '';
 const SAVED_DATE_STAMP = false;
+const SAVED_DATE = '';
 
 /* ====================================================================== */
 
@@ -1368,6 +1369,9 @@ function saveToHtml() {
   var curTheme = document.documentElement.getAttribute('data-theme') || '';
   src = src.replace(/const SAVED_THEME = '[^']*';/, "const SAVED_THEME = '" + curTheme + "';");
   src = src.replace(/const SAVED_DATE_STAMP = (true|false);/, 'const SAVED_DATE_STAMP = ' + dateStampSave + ';');
+  var now = new Date();
+  var saveDate = now.getFullYear() + '-' + ('0'+(now.getMonth()+1)).slice(-2) + '-' + ('0'+now.getDate()).slice(-2) + ' ' + ('0'+now.getHours()).slice(-2) + ':' + ('0'+now.getMinutes()).slice(-2);
+  src = src.replace(/const SAVED_DATE = '[^']*';/, "const SAVED_DATE = '" + saveDate + "';");
   var blob = new Blob([src], { type: 'text/html' });
   var url = URL.createObjectURL(blob);
   var a = document.createElement('a');
@@ -2082,6 +2086,7 @@ function updateHeaderMeta() {
   var taskLabel = hasWork ? remTasks + ' / ' + totalTasks + ' tasks' : totalTasks + ' tasks';
   document.getElementById('headerMeta').innerHTML =
     '<span>Scan: ' + esc(m.scan_date) + '</span>' +
+    (SAVED_DATE ? '<span>Saved: ' + esc(SAVED_DATE) + '</span>' : '') +
     '<span>' + issLabel + '</span>' +
     '<span>' + machLabel + '</span>' +
     '<span>' + taskLabel + '</span>' +
