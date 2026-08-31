@@ -479,14 +479,14 @@ Only apply this to the data block itself, not the surrounding template code.
 
 **Do not use `re.sub` with data as the replacement string.** Python's `re.sub` interprets backslash sequences in the replacement (`\1`, `\n`, etc.). Nessus output commonly contains backslashes (Windows registry paths like `HKLM\SOFTWARE\...`). Use a lambda replacement (`re.sub(pat, lambda m: replacement, src)`) or string slicing instead.
 
-**Transfer all three constants.** A complete migration transfers `INITIAL_DATA`, `PRE_CHECKED`, and `FILE_STAMP`. The `PRE_CHECKED` array and `FILE_STAMP` string use simple patterns that regex can handle safely:
+**Transfer all six constants.** A complete migration transfers `INITIAL_DATA`, `PRE_CHECKED`, `FILE_STAMP`, `SAVED_THEME`, `SAVED_DATE_STAMP`, and `SAVED_DATE`. The `PRE_CHECKED` array and `FILE_STAMP` string use simple patterns that regex can handle safely:
 
 ```python
 pre_checked = re.search(r'const PRE_CHECKED = \[[\s\S]*?\];', src).group(0)
 file_stamp = re.search(r"const FILE_STAMP = '[^']*';", src).group(0)
 ```
 
-The other embedded constants (`SAVED_THEME`, `SAVED_DATE_STAMP`) carry user preferences. The template defaults are fine for a fresh migration; do not transfer them unless the user asks.
+The settings constants (`SAVED_THEME`, `SAVED_DATE_STAMP`, `SAVED_DATE`) carry user preferences and the last save timestamp. Transfer them when the source file has them; if absent in the source, the template defaults are safe.
 
 ## Quick Reference: Full Workflow
 
