@@ -2,3 +2,5 @@ Projects/*
 !Projects/.gitkeep
 .DS_Store
 .claude/
+.venv/
+__pycache__/

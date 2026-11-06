@@ -8,6 +8,7 @@ Standalone HTML remediation checklist generated from Nessus vulnerability scan d
 |------|----------|---------|
 | `remediation_tracker_template.html` | End product | The tracker itself. Contains a labeled `INITIAL_DATA` section near the top of the script block with example data. Replace the `INITIAL_DATA` JSON object with real scan data to produce a new tracker |
 | `Instructions.md` | Humans | Full JSON schema reference. Documents every field, its type, where it comes from in a .nessus file, and which fields require analyst judgment |
+| `tools/` | Both | Python helpers: stream-parse `.nessus`, triage against the prior quarter, read `.docx` reports, build and inject the payload, read or migrate existing trackers. See `tools/README.md` |
 | `LLM-INSTRUCTIONS.md` | LLM co-pilot | Step by step Python workflow for parsing a .nessus file with `lxml.iterparse`, filtering by VPR/CVSS threshold, selecting achievable issues, building the JSON payload, and injecting it into the template |
 
 ## Projects folder

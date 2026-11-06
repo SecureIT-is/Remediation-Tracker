@@ -4,9 +4,11 @@ Step by step workflow for generating the JSON payload from a `.nessus` file and 
 
 ## Prerequisites
 
-- Python 3.8+ with `lxml` installed (`pip install lxml`)
+- Python 3.8+ with `lxml` (and `python-docx` to read customer reports). Use the project virtualenv: `python3 -m venv .venv && .venv/bin/pip install -r tools/requirements.txt` (Homebrew Python refuses system-wide installs)
 - The `.nessus` file (XML, can be hundreds of MB)
 - A copy of `remediation_tracker_template.html`
+
+**Ready-made tools.** `tools/` implements every step below (`nessus_parse.py`, `nessus_summary.py`, `docx2txt.py`, `trackerlib.py`, `tracker_inject.py`, `tracker_read.py`). Prefer them over rewriting the snippets; see `tools/README.md`. Per-client build scripts go in `Projects/<client>/<quarter>/` (git ignored) and import `tools/trackerlib.py`. The snippets below document what the tools do.
 
 ## Step 1: Parse the .nessus file
 
@@ -498,13 +500,12 @@ The settings constants (`SAVED_THEME`, `SAVED_DATE_STAMP`, `SAVED_DATE`) carry u
 ## Quick Reference: Full Workflow
 
 ```
-1. pip install lxml
-2. python parse.py          # Step 1: stream-parse .nessus -> all_plugins.json
-3. python filter_sort.py    # Step 2: filter VPR>=8.5, sort by count
-4. [analyst work]           # Step 3: select top N, write remediation/effort/workstream
-5. python build_data.py     # Step 4+5: build DATA object with slugs + KEV enrichment
-6. python inject.py         # Step 6: place into Projects/<client>/
-7. open output.html         # verify in browser
+1. .venv/bin/pip install -r tools/requirements.txt
+2. tools/nessus_parse.py         # Step 1: stream-parse .nessus -> JSON (this and prior quarter)
+3. tools/nessus_summary.py table # Step 2: severity/score table with prior-quarter host counts
+4. [analyst work]                # Step 3: select issues, write remediation/effort/workstream
+5. Projects/<client>/<q>/build_tracker.py  # Step 4-6: trackerlib.assemble() + inject()
+6. tools/tracker_read.py out.html          # check counts, then open in a browser
 ```
 
 In practice, steps 2 through 5 are often done in a single script with the LLM co-pilot filling in the analyst judgment parts (workstream assignment, effort rating, remediation writing) based on the plugin output and independent research.
