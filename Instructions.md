@@ -109,7 +109,7 @@ Each task has three possible states:
 
 Done and False Positive are mutually exclusive. Setting one clears the other. Both count toward progress (reducing remaining work), but FP counts are shown separately (e.g., "5 / 20 (3%) · 2 FP"). When Show Completed is off (default), resolved tasks are hidden from view.
 
-FP state is persisted in localStorage alongside done state and included in save/load JSON files as `fpTasks`.
+FP state is persisted in localStorage alongside done state. When the user saves to HTML, FP state is embedded as `PRE_FP` (array of task IDs) and remediation notes as `PRE_NOTES` (object mapping task IDs to note strings), so both survive file transfers between machines.
 
 ## Finding Massage Rules
 
@@ -145,7 +145,7 @@ When a project tracker (e.g., `Projects/UNAK/unak_q2_2026_remediation.html`) nee
 3. If the project's `dataSchemaVersion` is in the template's compatible list, the migration is a direct transfer: copy the entire `INITIAL_DATA` JSON block from the project file and paste it into the new template, replacing the template's example data. No data transformation needed.
 4. If the version is not compatible, a data migration is required. Consult the changelog for what changed between schema versions.
 
-The `checked`, `fpTasks`, and `remNotes` state is stored in localStorage and save/load JSON files, not in the HTML. After transferring the DATA payload to a new template, users can load their existing JSON save file to restore progress.
+The `checked`, `fpTasks`, and `remNotes` state is stored in localStorage and embedded in the saved HTML file as `PRE_CHECKED`, `PRE_FP`, and `PRE_NOTES`. A complete migration transfers all eight constants: `INITIAL_DATA`, `PRE_CHECKED`, `PRE_FP`, `PRE_NOTES`, `FILE_STAMP`, `SAVED_THEME`, `SAVED_DATE_STAMP`, and `SAVED_DATE`.
 
 ## Output Location
 

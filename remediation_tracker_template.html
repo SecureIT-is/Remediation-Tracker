@@ -62,6 +62,7 @@
     --shadow-lg: 0 4px 12px rgba(0,0,0,0.4);
   }
 }
+/* Explicit dark: mirrors @media block above — both needed for system vs manual toggle */
 :root[data-theme="dark"] {
   --navy: #8BA4C0;
   --navy-deep: #0F1A26;
@@ -194,6 +195,11 @@ body {
 }
 .search-input::placeholder { color: var(--gray-mid); }
 .search-input:focus { outline: none; border-color: var(--gold); box-shadow: 0 0 0 2px rgba(213,167,84,0.2); }
+.search-clear {
+  background: none; border: none; cursor: pointer; font-size: 18px; color: var(--gray-mid);
+  padding: 4px 8px; line-height: 1; flex-shrink: 0;
+}
+.search-clear:hover { color: var(--navy); }
 
 .splash-overlay {
   position: fixed; inset: 0; z-index: 300;
@@ -528,6 +534,7 @@ body {
     </div>
     <div class="search-bar">
       <input class="search-input" id="searchInput" type="text" placeholder="Filter by name, IP, CVE, plugin ID...">
+      <button class="search-clear" id="searchClear" onclick="clearSearch()" aria-label="Clear search" style="display:none">&times;</button>
     </div>
   </div>
 </div>
@@ -565,7 +572,7 @@ body {
         <button class="theme-pill" data-datestamp-val="on" onclick="setDateStamp(true)">On</button>
       </div>
     </div>
-    <div style="text-align:center;padding:12px 0 0;font-size:10px;color:var(--gray-mid);letter-spacing:0.03em">Remediation Tracker v<span id="versionLabel">0.92.3</span></div>
+    <div style="text-align:center;padding:12px 0 0;font-size:10px;color:var(--gray-mid);letter-spacing:0.03em">Remediation Tracker v<span id="versionLabel">0.93.0</span></div>
     <div style="text-align:center;padding:4px 0 0;font-size:10px;color:var(--gray-mid);letter-spacing:0.03em">Compatible Data Schemas: <span id="schemaLabel"></span></div>
     <div class="modal-actions" style="margin-top:16px">
       <button class="modal-btn modal-btn-primary" onclick="closeSettingsModal()">Done</button>
@@ -588,7 +595,7 @@ body {
 </div>
 
 <script>
-const TRACKER_VERSION = '0.92.3';
+const TRACKER_VERSION = '0.93.0';
 const COMPATIBLE_SCHEMA_VERSIONS = [200];
 const DATA_SCHEMA_VERSION = 200;
 
@@ -1071,6 +1078,8 @@ const INITIAL_DATA = {
 };
 
 const PRE_CHECKED = [];
+const PRE_FP = [];
+const PRE_NOTES = {};
 const FILE_STAMP = '';
 const SAVED_THEME = '';
 const SAVED_DATE_STAMP = false;
@@ -1082,6 +1091,7 @@ let DATA = null;
 let SCAN_NAME = '';
 let ALL_TASK_IDS = new Set();
 let WORKSTREAM_MAP = {};
+let MACHINE_MAP = {};
 
 // --- State ---
 let checked = {};
@@ -1113,8 +1123,8 @@ function compareIPs(a, b) {
 function sortedTasks(tasks) {
   var sorted = tasks.slice();
   sorted.sort(function(a, b) {
-    var ma = DATA.machines.find(function(mm) { return mm.slug === a.machine; });
-    var mb = DATA.machines.find(function(mm) { return mm.slug === b.machine; });
+    var ma = MACHINE_MAP[a.machine];
+    var mb = MACHINE_MAP[b.machine];
     if (sortMode === 'ip') {
       return compareIPs(ma ? ma.ips[0] : '', mb ? mb.ips[0] : '');
     }
@@ -1365,6 +1375,13 @@ function saveToHtml() {
   var preIds = Object.keys(checked).filter(function(k) { return checked[k]; });
   var preJson = JSON.stringify(preIds, null, 2);
   src = src.replace(/const PRE_CHECKED = \[[\s\S]*?\];/, 'const PRE_CHECKED = ' + preJson + ';');
+  var fpIds = Object.keys(fpTasks).filter(function(k) { return fpTasks[k]; });
+  var fpJson = JSON.stringify(fpIds, null, 2);
+  src = src.replace(/const PRE_FP = \[[\s\S]*?\];/, 'const PRE_FP = ' + fpJson + ';');
+  var notesClean = {};
+  Object.keys(remNotes).forEach(function(k) { if (remNotes[k]) notesClean[k] = remNotes[k]; });
+  var notesJson = JSON.stringify(notesClean, null, 2);
+  src = src.replace(/const PRE_NOTES = \{[\s\S]*?\};/, 'const PRE_NOTES = ' + notesJson + ';');
   src = src.replace(/const FILE_STAMP = '[^']*';/, "const FILE_STAMP = '" + stamp + "';");
   var curTheme = document.documentElement.getAttribute('data-theme') || '';
   src = src.replace(/const SAVED_THEME = '[^']*';/, "const SAVED_THEME = '" + curTheme + "';");
@@ -1412,6 +1429,9 @@ function initWithData(data, checkedState, fpState, notesState) {
     if (!WORKSTREAM_MAP[key]) WORKSTREAM_MAP[key] = [];
     WORKSTREAM_MAP[key].push(iss);
   });
+
+  MACHINE_MAP = {};
+  DATA.machines.forEach(function(m) { MACHINE_MAP[m.slug] = m; });
 
   if (checkedState && typeof checkedState === 'object') {
     checked = {};
@@ -1586,6 +1606,7 @@ function renderIssues() {
       if (iss.kev) html += '<span class="badge badge-kev">CISA KEV</span>';
       if (iss.exploit) html += '<span class="badge badge-exploit">Exploit</span>';
       html += '<span class="badge badge-effort-' + sevClass(iss.effort) + '">Effort: ' + iss.effort + '</span>';
+      html += '<button class="issue-expand-btn" onclick="event.stopPropagation();toggleDetail(\'det-' + iss.pid + '\')" aria-label="Toggle details" title="Remediation details">' + expandSvg() + '</button>';
       html += '</div></div>';
       const hostsId = 'hosts-' + iss.pid;
       const isHostsOpen = openHostPanels.has(iss.pid);
@@ -1597,7 +1618,7 @@ function renderIssues() {
 
       html += '<div class="hosts-panel' + (isHostsOpen ? ' open' : '') + '" id="' + hostsId + '">';
       sortedTasks(iss.tasks).forEach(t => {
-        const m = DATA.machines.find(mm => mm.slug === t.machine);
+        const m = MACHINE_MAP[t.machine];
         const hostName = m && m.name ? m.name : '';
         const isDone = isChecked(t.id);
         const taskFP = isFP(t.id);
@@ -1721,7 +1742,7 @@ function matchesSearch(iss) {
   if (iss.family.toLowerCase().includes(q)) return true;
   if (iss.cves.some(c => c.toLowerCase().includes(q))) return true;
   if (iss.tasks.some(t => {
-    const m = DATA.machines.find(mm => mm.slug === t.machine);
+    const m = MACHINE_MAP[t.machine];
     return m && (m.ips.some(ip => ip.includes(q)) || (m.name && m.name.toLowerCase().includes(q)));
   })) return true;
   return false;
@@ -1793,7 +1814,7 @@ function checkMachineGroup(grpId, val) {
   refreshAll();
 }
 function checkMachine(slug, val) {
-  const m = DATA.machines.find(mm => mm.slug === slug);
+  const m = MACHINE_MAP[slug];
   var ch = [];
   if (m) m.tasks.forEach(function(t) {
     var prev = !!checked[t]; var prevFP = !!fpTasks[t];
@@ -1824,7 +1845,7 @@ function toggleMachineGroup(grpId, slug) {
   }
 }
 function renderMachineBody(body, slug) {
-  const m = DATA.machines.find(mm => mm.slug === slug);
+  const m = MACHINE_MAP[slug];
   if (!m) return;
   let html = '<div class="machine-os">' + esc(m.os) + (m.ips.length ? ' &mdash; ' + m.ips.map(esc).join(', ') : '') + '</div>';
   m.tasks.forEach(tid => {
@@ -1844,7 +1865,7 @@ function renderMachineBody(body, slug) {
     if (task && task.detail) html += '<div class="mt-detail">' + formatDetail(task.detail) + '</div>';
     html += '</div>';
     html += '<div class="issue-badges">';
-    html += '<button class="fp-btn' + (taskFP ? ' active' : '') + '" onclick="event.stopPropagation();toggleFP(\'' + tid + '\')" style="margin-right:4px">FP</button>';
+    html += '<button class="fp-btn' + (taskFP ? ' active' : '') + '" onclick="event.stopPropagation();toggleFP(\'' + tid + '\')" style="margin-right:4px">False Positive</button>';
     html += '<span class="badge badge-score" style="font-size:9px">' + iss.score.toFixed(1) + '</span>';
     if (iss.kev) html += '<span class="badge badge-kev" style="font-size:9px">KEV</span>';
     html += '</div></div>';
@@ -1871,6 +1892,8 @@ function switchView(view) {
   activeView = view;
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.view === view));
   document.querySelectorAll('.view-panel').forEach(p => p.classList.toggle('active', p.id === view + 'View'));
+  if (view === 'issues') renderIssues();
+  else renderMachines();
 }
 
 const NAV_STACK = [];
@@ -1884,7 +1907,7 @@ function slugIsHidden(entry) {
   if (!entry.slug) return false;
   var iss = DATA.issues.find(function(i) { return i.slug === entry.slug; });
   if (iss) return iss.tasks.every(function(t) { return isResolved(t.id); });
-  var m = DATA.machines.find(function(mm) { return mm.slug === entry.slug; });
+  var m = MACHINE_MAP[entry.slug];
   if (m) return m.tasks.every(function(tid) { return isResolved(tid); });
   return false;
 }
@@ -2097,8 +2120,8 @@ function updateHeaderMeta() {
 
 function refreshAll() {
   if (!DATA) return;
-  renderIssues();
-  renderMachines();
+  if (activeView === 'issues') renderIssues();
+  else renderMachines();
   updateGlobalProgress();
   updateHeaderMeta();
 }
@@ -2107,11 +2130,19 @@ function refreshAll() {
 let searchTimeout;
 document.getElementById('searchInput').addEventListener('input', function() {
   clearTimeout(searchTimeout);
+  var input = this;
   searchTimeout = setTimeout(() => {
-    searchTerm = this.value.trim();
+    searchTerm = input.value.trim();
+    document.getElementById('searchClear').style.display = searchTerm ? 'block' : 'none';
     if (DATA) refreshAll();
   }, 200);
 });
+function clearSearch() {
+  document.getElementById('searchInput').value = '';
+  document.getElementById('searchClear').style.display = 'none';
+  searchTerm = '';
+  if (DATA) refreshAll();
+}
 
 function loadFromEmbedded() {
   var clean = sanitizeData(INITIAL_DATA);
@@ -2120,7 +2151,16 @@ function loadFromEmbedded() {
     preState = {};
     PRE_CHECKED.forEach(function(id) { preState[id] = 1; });
   }
-  initWithData(clean, preState);
+  var preFP = null;
+  if (PRE_FP && PRE_FP.length) {
+    preFP = {};
+    PRE_FP.forEach(function(id) { preFP[id] = 1; });
+  }
+  var preNotes = null;
+  if (PRE_NOTES && typeof PRE_NOTES === 'object' && Object.keys(PRE_NOTES).length) {
+    preNotes = PRE_NOTES;
+  }
+  initWithData(clean, preState, preFP, preNotes);
   saveSession();
 }
 
