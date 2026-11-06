@@ -1,3 +1,5 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Remediation Tracker</title>
 <style>
 :root {
@@ -494,13 +496,31 @@ body {
 
 @media (max-width: 640px) {
   .app-header { padding: 12px 16px 10px; }
-  .header-meta { flex-wrap: wrap; gap: 8px; }
-  .tab-bar { margin: 0 16px; }
+  /* Header: gear, logo, Save/Clear share row 1; title wraps to its own row */
+  .header-top { gap: 10px; }
+  .header-logo svg { height: 22px; width: auto; }
+  .header-title { font-size: 15px; order: 1; flex-basis: 100%; }
+  .toolbar-spacer { width: 0; }
+  .header-meta { flex-wrap: wrap; margin-top: 6px; font-size: 11px; gap: 4px 10px; }
+  /* Tab bar wraps: tabs on row 1, divider line, then Sort / Show Completed on row 3 */
+  .tab-bar { margin: 0 16px; flex-wrap: wrap; border-bottom: none; }
+  .tab-bar::before { content: ''; order: 1; flex-basis: 100%; height: 1px; background: var(--border); }
+  .tab-btn { padding: 10px 14px; }
+  .sort-btn, .toggle-completed { order: 2; margin-top: 8px; }
+  .sort-btn { margin-left: 0; }
   .search-bar { margin: 8px 16px 0; flex-wrap: wrap; }
   .content { padding: 12px 16px 60px; }
-  .issue-row { grid-template-columns: 28px 4px 1fr auto; gap: 0 8px; padding: 8px 10px; }
-  .issue-badges { flex-wrap: wrap; }
-  .issue-detail { padding-left: 32px; }
+  .group-header { gap: 8px; }
+  .group-progress { display: none; } /* group-count already shows progress; frees width for title */
+  /* Issue and machine rows: badges drop below the name, names wrap instead of truncating */
+  .issue-row, .machine-task { grid-template-columns: 28px 4px 1fr; gap: 0 8px; padding: 8px 10px; }
+  .issue-row > .issue-cb, .issue-row > .sev-stripe,
+  .machine-task > .issue-cb, .machine-task > .sev-stripe { grid-row: 1 / 3; }
+  .issue-row > .issue-badges, .machine-task > .issue-badges {
+    grid-column: 3; margin: 6px 0 0; flex-wrap: wrap; }
+  .issue-badges .issue-expand-btn { margin-left: auto; }
+  .issue-name, .mt-name { white-space: normal; overflow-wrap: anywhere; }
+  .issue-detail, .hosts-toggle, .hosts-panel { padding-left: 32px; }
 }
 </style>
 
@@ -572,7 +592,7 @@ body {
         <button class="theme-pill" data-datestamp-val="on" onclick="setDateStamp(true)">On</button>
       </div>
     </div>
-    <div style="text-align:center;padding:12px 0 0;font-size:10px;color:var(--gray-mid);letter-spacing:0.03em">Remediation Tracker v<span id="versionLabel">0.93.0</span></div>
+    <div style="text-align:center;padding:12px 0 0;font-size:10px;color:var(--gray-mid);letter-spacing:0.03em">Remediation Tracker v<span id="versionLabel">0.93.1</span></div>
     <div style="text-align:center;padding:4px 0 0;font-size:10px;color:var(--gray-mid);letter-spacing:0.03em">Compatible Data Schemas: <span id="schemaLabel"></span></div>
     <div class="modal-actions" style="margin-top:16px">
       <button class="modal-btn modal-btn-primary" onclick="closeSettingsModal()">Done</button>
@@ -595,7 +615,7 @@ body {
 </div>
 
 <script>
-const TRACKER_VERSION = '0.93.0';
+const TRACKER_VERSION = '0.93.1';
 const COMPATIBLE_SCHEMA_VERSIONS = [200];
 const DATA_SCHEMA_VERSION = 200;
 
