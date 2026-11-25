@@ -185,7 +185,8 @@ def assemble(scan, issues, meta, slugger, prior=None, prior_label=None):
     out_issues, machines, mslug, keyed = [], {}, {}, {}
     for it in issues:
         missing = [p for p in it.pids if p not in P]
-        assert not missing, (it.key, missing)
+        if missing:
+            raise ValueError(f"issue {it.key!r}: plugin ids not in the scan: {missing}")
         ps = [P[p] for p in it.pids]
         iss_slug = slugger("issue")
         prior_hosts = prior.hosts_matching(it.prior_re, it.pids) if prior else set()
@@ -234,15 +235,23 @@ def assemble(scan, issues, meta, slugger, prior=None, prior_label=None):
 
 
 def validate(data):
-    """Raise AssertionError if DATA would break the template."""
+    """Raise ValueError if DATA would break the template.
+
+    Explicit raises, not assert: python -O strips asserts, and the last check
+    keeps DATA from closing the inline <script> it is injected into."""
     tids = [t["id"] for i in data["issues"] for t in i["tasks"]]
-    assert len(tids) == len(set(tids)), "duplicate task ids"
-    assert set(tids) == {t for m in data["machines"] for t in m["tasks"]}, "issue and machine task lists differ"
+    if len(tids) != len(set(tids)):
+        raise ValueError("duplicate task ids")
+    if set(tids) != {t for m in data["machines"] for t in m["tasks"]}:
+        raise ValueError("issue and machine task lists differ")
     bad = [t for t in tids if not re.fullmatch(r"issue_[A-Za-z0-9]{8}::host_[A-Za-z0-9]{8}::\d+", t)]
-    assert not bad, f"task ids fail the template's sanitize regex: {bad[:3]}"
-    assert len({i["pid"] for i in data["issues"]}) == len(data["issues"]), "duplicate issue pid"
+    if bad:
+        raise ValueError(f"task ids fail the template's sanitize regex: {bad[:3]}")
+    if len({i["pid"] for i in data["issues"]}) != len(data["issues"]):
+        raise ValueError("duplicate issue pid")
     blob = json.dumps(data, ensure_ascii=False)
-    assert "};" not in blob and "</" not in blob, "payload contains '};' or '</', which breaks the inline script"
+    if "};" in blob or "</" in blob:
+        raise ValueError("payload contains '};' or '</', which breaks the inline script")
 
 
 def summary(data, notes=None):
@@ -338,7 +347,8 @@ def inject(template_path, out_path, data, notes=None, checked=None, fp=None):
     s = html.index("const SAVED_DATE = '")
     e = html.index("';", s) + 2
     html = html[:s] + "const SAVED_DATE = '';" + html[e:]
-    assert "const FILE_STAMP = '';" in html, "template FILE_STAMP is not empty"
+    if "const FILE_STAMP = '';" not in html:
+        raise ValueError("template FILE_STAMP is not empty")
     os.makedirs(os.path.dirname(os.path.abspath(out_path)), exist_ok=True)
     with open(out_path, "w", encoding="utf-8") as f:
         f.write(html)

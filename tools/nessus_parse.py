@@ -40,7 +40,10 @@ def parse(src, desc_limit=1500, out_limit=4000):
     report_name, host_name = None, None
     sev_counts = {i: 0 for i in range(5)}
 
-    for ev, el in etree.iterparse(src, events=("start", "end"), huge_tree=True, recover=True):
+    # resolve_entities=False / no_network=True: never expand DTD entities or fetch anything,
+    # so a crafted .nessus file can't read local files (XXE, CVE-2026-41066).
+    for ev, el in etree.iterparse(src, events=("start", "end"), huge_tree=True, recover=True,
+                                  resolve_entities=False, no_network=True):
         tag = el.tag
         if ev == "start":
             if tag == "Report":

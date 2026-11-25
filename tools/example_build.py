@@ -28,7 +28,8 @@ import sys
 ROOT = os.path.dirname(os.path.abspath(__file__))
 while not os.path.exists(os.path.join(ROOT, "remediation_tracker_template.html")):  # walk up to the repo root
     parent = os.path.dirname(ROOT)
-    assert parent != ROOT, "run from inside the remediation-tracker repo"
+    if parent == ROOT:
+        sys.exit("run from inside the remediation-tracker repo")
     ROOT = parent
 sys.path.insert(0, os.path.join(ROOT, "tools"))
 from trackerlib import Issue, Scan, Slugger, assemble, flat, grab, inject, summary  # noqa: E402,F401
